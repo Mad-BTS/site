@@ -5,20 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Mad-BTS-Prog</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
             background-color: #1a1a1a;
             color: #fff;
             text-align: center;
             font-family: Arial, sans-serif;
-            margin-top: 50px;
+            margin: 0;
+            padding: 10px;
             touch-action: manipulation; /* Évite le zoom automatique sur mobile */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        h1 {
+            margin: 5px 0;
+            font-size: 1.8rem;
+        }
+        p {
+            margin: 5px 0 15px 0;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+        /* Conteneur pour gérer l'affichage responsive */
+        .canvas-container {
+            width: 100%;
+            max-width: 800px; /* Taille max sur PC */
+            aspect-ratio: 800 / 300; /* Garde les proportions d'origine */
+            position: relative;
         }
         canvas {
             background-color: #87CEEB;
             border: 4px solid #fff;
             box-shadow: 0px 0px 20px rgba(255,255,255,0.2);
-            max-width: 100%;
-            height: auto;
+            width: 100%;
+            height: 100%;
+            display: block;
         }
     </style>
 </head>
@@ -26,7 +52,10 @@
 
     <h1>Mad-BTS-Prog</h1>
     <p>Appuyez sur la <strong>Barre Espace</strong> ou <strong>touchez l'écran</strong> pour faire un Kickflip !</p>
-    <canvas id="jeuCanvas" width="800" height="300"></canvas>
+    
+    <div class="canvas-container">
+        <canvas id="jeuCanvas" width="800" height="300"></canvas>
+    </div>
 
 <script>
 const canvas = document.getElementById("jeuCanvas");
@@ -82,12 +111,9 @@ document.addEventListener("keydown", function(e) {
     }
 });
 
-// Contrôle Tactile (Mobile) & Clic Souris
+// Contrôle Tactile pour tout l'écran sur mobile
 window.addEventListener("touchstart", function(e) {
-    // Empêche les comportements de zoom ou double-tap natifs sur le jeu
-    if (e.target === canvas || e.target.tagName === "BODY") {
-        handleAction();
-    }
+    handleAction();
 }, { passive: true });
 
 function resetGame() {
@@ -231,11 +257,11 @@ function draw() {
         
         ctx.fillStyle = "#fff";
         ctx.textAlign = "center";
-        ctx.font = "bold 40px Arial";
+        ctx.font = "bold 30px Arial"; // Légèrement réduit pour bien rentrer sur mobile
         ctx.fillText("GAME OVER", canvas.width / 2, 130);
         
-        ctx.font = "20px Arial";
-        ctx.fillText("Appuyez ou touchez pour retenter !", canvas.width / 2, 180);
+        ctx.font = "18px Arial";
+        ctx.fillText("Touchez l'écran ou Espace pour retenter !", canvas.width / 2, 180);
         ctx.textAlign = "left"; // Reset baseline alignment
     }
 }
