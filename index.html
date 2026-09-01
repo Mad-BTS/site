@@ -293,5 +293,12 @@ function loop() {
 resizeCanvas();
 loop();
 </script>
-</body>
+</body><div id="game-over-screen" style="display: none;">
+    <div class="modal-content">
+        <h2>🛹 CHUTE !</h2>
+        <p>Votre score actuel : <span id="current-score">0</span> points</p>
+        <button id="btn-revive" onclick="demanderPubRevivre()">🎬 Revivre (Regarder une pub)</button>
+        <button id="btn-restart" onclick="recommencerPartie()">❌ Abandonner</button>
+    </div>
+</div>
 </html>
