@@ -188,7 +188,8 @@ function update() {
         obstacle.y + obstacle.height > skaterHitbox.y
     ) {
         gameOver = true;
-    }
+    }declencherGameOver(score);
+
 }
 
 function drawSkater() {
