@@ -2,76 +2,91 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mad-BTS-Prog</title>
     <style>
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: Arial, sans-serif;
         }
         body {
-            background-color: #1a1a1a;
-            color: #fff;
-            text-align: center;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 10px;
-            touch-action: manipulation; /* Évite le zoom automatique sur mobile */
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
+        }
+        .header-ui {
+            padding: 10px;
+            text-align: center;
+            color: white;
+            background: #222;
+            z-index: 10;
         }
         h1 {
-            margin: 5px 0;
-            font-size: 1.8rem;
+            font-size: 1.4rem;
         }
         p {
-            margin: 5px 0 15px 0;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             color: #ccc;
         }
-        /* Conteneur pour gérer l'affichage responsive */
-        .canvas-container {
+        .game-container {
+            flex: 1;
             width: 100%;
-            max-width: 800px; /* Taille max sur PC */
-            aspect-ratio: 800 / 300; /* Garde les proportions d'origine */
             position: relative;
         }
         canvas {
             background-color: #87CEEB;
-            border: 4px solid #fff;
-            box-shadow: 0px 0px 20px rgba(255,255,255,0.2);
+            display: block;
             width: 100%;
             height: 100%;
-            display: block;
         }
     </style>
 </head>
 <body>
 
-    <h1>Mad-BTS-Prog</h1>
-    <p>Appuyez sur la <strong>Barre Espace</strong> ou <strong>touchez l'écran</strong> pour faire un Kickflip !</p>
+    <div class="header-ui">
+        <h1>Mad-BTS-Prog</h1>
+        <p>Touchez l'écran ou Espace pour faire un Kickflip !</p>
+    </div>
     
-    <div class="canvas-container">
-        <canvas id="jeuCanvas" width="800" height="300"></canvas>
+    <div class="game-container">
+        <canvas id="jeuCanvas"></canvas>
     </div>
 
 <script>
 const canvas = document.getElementById("jeuCanvas");
 const ctx = canvas.getContext("2d");
 
-// Physics baseline constants
-const GROUND_Y = 200;
+// Configuration dynamique du canvas
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    // On prend la hauteur restante de l'écran après le menu du haut
+    canvas.height = canvas.parentElement.clientHeight;
+    
+    // Recalculer le sol et la physique selon la taille réelle de l'écran
+    GROUND_Y = canvas.height - 100; 
+    if (!skater.isJumping) {
+        skater.y = GROUND_Y;
+    }
+    obstacle.y = GROUND_Y + 20;
+}
+
+// Variables physiques globales
+let GROUND_Y = 200;
 const GRAVITY = 0.6;
 const JUMP_POWER = -12;
 
-// Calculate flight duration to perfectly sync the 360 flip rotation
 const airTimeFrames = Math.abs(JUMP_POWER / GRAVITY) * 2;
 const rotationStep = (Math.PI * 2) / airTimeFrames;
 
 let skater = {
-    x: 80,
+    x: 50,
     y: GROUND_Y,
     width: 40,
     height: 60,
@@ -93,7 +108,11 @@ let obstacle = {
 let score = 0;
 let gameOver = false;
 
-// Fonction universelle pour sauter ou redémarrer
+// Initialisation de la taille de l'écran
+window.addEventListener('resize', resizeCanvas);
+// Un petit délai pour s'assurer que le mobile a fini de charger son interface
+setTimeout(resizeCanvas, 100);
+
 function handleAction() {
     if (!skater.isJumping && !gameOver) {
         skater.vy = skater.jumpPower;
@@ -103,15 +122,14 @@ function handleAction() {
     }
 }
 
-// Contrôle Clavier (Espace)
+// Contrôles
 document.addEventListener("keydown", function(e) {
     if (e.code === "Space") {
-        e.preventDefault(); // Empêche la page de défiler vers le bas
+        e.preventDefault();
         handleAction();
     }
 });
 
-// Contrôle Tactile pour tout l'écran sur mobile
 window.addEventListener("touchstart", function(e) {
     handleAction();
 }, { passive: true });
@@ -121,7 +139,7 @@ function resetGame() {
     skater.vy = 0;
     skater.isJumping = false;
     skater.angle = 0;
-    obstacle.x = 800;
+    obstacle.x = canvas.width + 50;
     obstacle.speed = 6;
     score = 0;
     gameOver = false;
@@ -131,16 +149,15 @@ function resetGame() {
 function update() {
     if (gameOver) return;
 
-    // Jump physics
+    // Physique du saut
     skater.vy += skater.gravity;
     skater.y += skater.vy;
 
-    // Synced Kickflip rotation loop
     if (skater.isJumping) {
         skater.angle += rotationStep;
     }
 
-    // Landing detection
+    // Détection du sol
     if (skater.y > GROUND_Y) {
         skater.y = GROUND_Y;
         skater.vy = 0;
@@ -148,15 +165,15 @@ function update() {
         skater.angle = 0; 
     }
 
-    // Obstacle logic
+    // Mouvement de l'obstacle
     obstacle.x -= obstacle.speed;
     if (obstacle.x < -obstacle.width) {
-        obstacle.x = 800;
+        obstacle.x = canvas.width + Math.random() * 100; // Réapparaît juste après le bord droit de l'écran
         score++;
         obstacle.speed += 0.3;
     }
 
-    // Precise inner collision mapping
+    // Collisions
     let skaterHitbox = {
         x: skater.x + 8,
         y: skater.y + 5,
@@ -182,25 +199,25 @@ function drawSkater() {
     let ox = -skater.width / 2;
     let oy = -skater.height / 2;
 
-    // 1. Torso
+    // Torse
     ctx.fillStyle = "#3498db";
     ctx.fillRect(ox + 10, oy + 20, 20, 25);
 
-    // 2. Head
+    // Tête
     ctx.fillStyle = "#ffdbac";
     ctx.fillRect(ox + 13, oy + 5, 14, 15);
 
-    // 3. Cap
+    // Casquette
     ctx.fillStyle = "#e74c3c";
     ctx.fillRect(ox + 10, oy, 17, 6); 
     ctx.fillRect(ox + 18, oy + 4, 14, 3); 
 
-    // 4. Pants
+    // Pantalon
     ctx.fillStyle = "#2c3e50";
     ctx.fillRect(ox + 10, oy + 45, 9, 10); 
     ctx.fillRect(ox + 21, oy + 45, 9, 10); 
 
-    // 5. Skateboard deck & wheels
+    // Skate
     ctx.fillStyle = "#d35400"; 
     ctx.fillRect(ox, oy + 55, skater.width, 5);
 
@@ -217,38 +234,36 @@ function drawSkater() {
 }
 
 function draw() {
-    // Environment background
+    // Ciel
     ctx.fillStyle = "#87CEEB";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Sun
+    // Soleil
     ctx.fillStyle = "#f1c40f";
     ctx.beginPath();
-    ctx.arc(700, 50, 30, 0, Math.PI * 2);
+    ctx.arc(canvas.width - 80, 50, 30, 0, Math.PI * 2);
     ctx.fill();
 
-    // Sidewalk pavement
+    // Sol adaptatif
     ctx.fillStyle = "#7f8c8d";
-    ctx.fillRect(0, 260, canvas.width, 40);
+    ctx.fillRect(0, GROUND_Y + 60, canvas.width, canvas.height - GROUND_Y);
     ctx.fillStyle = "#95a5a6"; 
-    ctx.fillRect(0, 260, canvas.width, 4);
+    ctx.fillRect(0, GROUND_Y + 60, canvas.width, 4);
 
     drawSkater();
 
-    // Fire hydrant obstacle
+    // Obstacle
     ctx.fillStyle = "#e74c3c";
     ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
     ctx.fillStyle = "#c0392b";
     ctx.fillRect(obstacle.x + 5, obstacle.y - 5, obstacle.width - 10, 5);
 
-    // Score display
+    // Score
     ctx.fillStyle = "#fff";
     ctx.font = "bold 20px Arial";
     ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
     ctx.shadowBlur = 4;
     ctx.fillText("Score : " + score, 20, 35);
-    
-    // Clear shadow configurations for elements
     ctx.shadowBlur = 0;
 
     if (gameOver) {
@@ -257,12 +272,12 @@ function draw() {
         
         ctx.fillStyle = "#fff";
         ctx.textAlign = "center";
-        ctx.font = "bold 30px Arial"; // Légèrement réduit pour bien rentrer sur mobile
-        ctx.fillText("GAME OVER", canvas.width / 2, 130);
+        ctx.font = "bold 30px Arial";
+        ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 20);
         
-        ctx.font = "18px Arial";
-        ctx.fillText("Touchez l'écran ou Espace pour retenter !", canvas.width / 2, 180);
-        ctx.textAlign = "left"; // Reset baseline alignment
+        ctx.font = "16px Arial";
+        ctx.fillText("Touchez l'écran pour retenter !", canvas.width / 2, canvas.height / 2 + 30);
+        ctx.textAlign = "left";
     }
 }
 
@@ -274,6 +289,8 @@ function loop() {
     }
 }
 
+// Lancement initial après calculs de taille
+resizeCanvas();
 loop();
 </script>
 </body>
