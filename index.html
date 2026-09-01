@@ -2,7 +2,8 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Mon Jeu de Skate</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Mad-BTS-Prog</title>
     <style>
         body {
             background-color: #1a1a1a;
@@ -10,208 +11,244 @@
             text-align: center;
             font-family: Arial, sans-serif;
             margin-top: 50px;
+            touch-action: manipulation; /* Évite le zoom automatique sur mobile */
         }
-        canvas {     
+        canvas {
             background-color: #87CEEB;
             border: 4px solid #fff;
             box-shadow: 0px 0px 20px rgba(255,255,255,0.2);
+            max-width: 100%;
+            height: auto;
         }
     </style>
 </head>
 <body>
-    <h1>Mad-Bts-Prog</h1>
-    <p>Appuyez sur la <strong>Barre Espace</strong> pour faire un Kickflip au-dessus des obstacles !</p>
+
+    <h1>Mad-BTS-Prog</h1>
+    <p>Appuyez sur la <strong>Barre Espace</strong> ou <strong>touchez l'écran</strong> pour faire un Kickflip !</p>
     <canvas id="jeuCanvas" width="800" height="300"></canvas>
 
-    <script>
-        const canvas = document.getElementById("jeuCanvas");
-        const ctx = canvas.getContext("2d");
+<script>
+const canvas = document.getElementById("jeuCanvas");
+const ctx = canvas.getContext("2d");
 
-        // Skateur avec gestion de la rotation pour le saut
-        let skater = {
-            x: 80,
-            y: 200,
-            width: 40,
-            height: 60,
-            vy: 0,
-            gravity: 0.6,
-            jumpPower: -12,
-            isJumping: false,
-            angle: 0 // Angle pour l'animation du flip
-        };
+// Physics baseline constants
+const GROUND_Y = 200;
+const GRAVITY = 0.6;
+const JUMP_POWER = -12;
 
-        // Obstacle (poubelle ou barrière)
-        let obstacle = {
-            x: 800,
-            y: 220,
-            width: 30,
-            height: 40,
-            speed: 6
-        };
+// Calculate flight duration to perfectly sync the 360 flip rotation
+const airTimeFrames = Math.abs(JUMP_POWER / GRAVITY) * 2;
+const rotationStep = (Math.PI * 2) / airTimeFrames;
 
-        let score = 0;
-        let gameOver = false;
+let skater = {
+    x: 80,
+    y: GROUND_Y,
+    width: 40,
+    height: 60,
+    vy: 0,
+    gravity: GRAVITY,
+    jumpPower: JUMP_POWER,
+    isJumping: false,
+    angle: 0
+};
 
-        document.addEventListener("keydown", function(e) {
-            if (e.code === "Space") {
-                if (!skater.isJumping && !gameOver) {
-                    skater.vy = skater.jumpPower;
-                    skater.isJumping = true;
-                }
-                if (gameOver) {
-                    resetGame();
-                }
-            }
-        });
+let obstacle = {
+    x: 800,
+    y: 220,
+    width: 30,
+    height: 40,
+    speed: 6
+};
 
-        function resetGame() {
-            skater.y = 200;
-            skater.vy = 0;
-            skater.isJumping = false;
-            skater.angle = 0;
-            obstacle.x = 800;
-            obstacle.speed = 6;
-            score = 0;
-            gameOver = false;
-            loop();
-        }
+let score = 0;
+let gameOver = false;
 
-        function update() {
-            if (gameOver) return;
+// Fonction universelle pour sauter ou redémarrer
+function handleAction() {
+    if (!skater.isJumping && !gameOver) {
+        skater.vy = skater.jumpPower;
+        skater.isJumping = true;
+    } else if (gameOver) {
+        resetGame();
+    }
+}
 
-            // Gravité et physique du saut
-            skater.vy += skater.gravity;
-            skater.y += skater.vy;
+// Contrôle Clavier (Espace)
+document.addEventListener("keydown", function(e) {
+    if (e.code === "Space") {
+        e.preventDefault(); // Empêche la page de défiler vers le bas
+        handleAction();
+    }
+});
 
-            // Animation du Kickflip (rotation à 360° pendant le saut)
-            if (skater.isJumping) {
-                skater.angle += 0.15; // Fait tourner le personnage
-            }
+// Contrôle Tactile (Mobile) & Clic Souris
+window.addEventListener("touchstart", function(e) {
+    // Empêche les comportements de zoom ou double-tap natifs sur le jeu
+    if (e.target === canvas || e.target.tagName === "BODY") {
+        handleAction();
+    }
+}, { passive: true });
 
-            // Gestion de l'atterrissage sur le sol
-            if (skater.y > 200) {
-                skater.y = 200;
-                skater.vy = 0;
-                skater.isJumping = false;
-                skater.angle = 0; // Remet le skate droit au sol
-            }
+function resetGame() {
+    skater.y = GROUND_Y;
+    skater.vy = 0;
+    skater.isJumping = false;
+    skater.angle = 0;
+    obstacle.x = 800;
+    obstacle.speed = 6;
+    score = 0;
+    gameOver = false;
+    loop();
+}
 
-            // Mouvement de l'obstacle
-            obstacle.x -= obstacle.speed;
-            if (obstacle.x < -30) {
-                obstacle.x = 800;
-                score++;
-                obstacle.speed += 0.3; // Augmente la vitesse au fil du temps
-            }
+function update() {
+    if (gameOver) return;
 
-            // Boîte de collision simplifiée
-            if (
-                obstacle.x < skater.x + skater.width &&
-                obstacle.x + obstacle.width > skater.x &&
-                obstacle.y < skater.y + skater.height &&
-                obstacle.y + obstacle.height > skater.y
-            ) {
-                gameOver = true;
-            }
-        }
+    // Jump physics
+    skater.vy += skater.gravity;
+    skater.y += skater.vy;
 
-        function drawSkater() {
-            ctx.save();
-            // On déplace le point d'origine au centre du skateur pour la rotation
-            ctx.translate(skater.x + skater.width / 2, skater.y + skater.height / 2);
-            ctx.rotate(skater.angle);
+    // Synced Kickflip rotation loop
+    if (skater.isJumping) {
+        skater.angle += rotationStep;
+    }
 
-            // Dessin du skateur (Coordonnées locales centrées sur 0,0)
-            let ox = -skater.width / 2;
-            let oy = -skater.height / 2;
+    // Landing detection
+    if (skater.y > GROUND_Y) {
+        skater.y = GROUND_Y;
+        skater.vy = 0;
+        skater.isJumping = false;
+        skater.angle = 0; 
+    }
 
-            // 1. Le corps / T-shirt (Bleu)
-            ctx.fillStyle = "#3498db";
-            ctx.fillRect(ox + 10, oy + 20, 20, 25);
+    // Obstacle logic
+    obstacle.x -= obstacle.speed;
+    if (obstacle.x < -obstacle.width) {
+        obstacle.x = 800;
+        score++;
+        obstacle.speed += 0.3;
+    }
 
-            // 2. La tête (Couleur chair)
-            ctx.fillStyle = "#ffdbac";
-            ctx.fillRect(ox + 13, oy + 5, 14, 15);
+    // Precise inner collision mapping
+    let skaterHitbox = {
+        x: skater.x + 8,
+        y: skater.y + 5,
+        width: skater.width - 16,
+        height: skater.height - 5
+    };
 
-            // 3. La casquette (Rouge)
-            ctx.fillStyle = "#e74c3c";
-            ctx.fillRect(ox + 10, oy, 17, 6); // Sommet
-            ctx.fillRect(ox + 18, oy + 4, 14, 3); // Visière vers l'avant
+    if (
+        obstacle.x < skaterHitbox.x + skaterHitbox.width &&
+        obstacle.x + obstacle.width > skaterHitbox.x &&
+        obstacle.y < skaterHitbox.y + skaterHitbox.height &&
+        obstacle.y + obstacle.height > skaterHitbox.y
+    ) {
+        gameOver = true;
+    }
+}
 
-            // 4. Les pantalons (Jean noir)
-            ctx.fillStyle = "#2c3e50";
-            ctx.fillRect(ox + 10, oy + 45, 9, 10); // Jambe gauche
-            ctx.fillRect(ox + 21, oy + 45, 9, 10); // Jambe droite
+function drawSkater() {
+    ctx.save();
+    ctx.translate(skater.x + skater.width / 2, skater.y + skater.height / 2);
+    ctx.rotate(skater.angle);
 
-            // 5. La Planche de Skate (Marron et roues noires)
-            ctx.fillStyle = "#d35400"; // Planche en bois
-            ctx.fillRect(ox, oy + 55, skater.width, 5);
-            
-            ctx.fillStyle = "#000"; // Roue gauche
-            ctx.beginPath();
-            ctx.arc(ox + 8, oy + 61, 4, 0, Math.PI * 2);
-            ctx.fill();
+    let ox = -skater.width / 2;
+    let oy = -skater.height / 2;
 
-            ctx.fillStyle = "#000"; // Roue droite
-            ctx.beginPath();
-            ctx.arc(ox + skater.width - 8, oy + 61, 4, 0, Math.PI * 2);
-            ctx.fill();
+    // 1. Torso
+    ctx.fillStyle = "#3498db";
+    ctx.fillRect(ox + 10, oy + 20, 20, 25);
 
-            ctx.restore();
-        }
+    // 2. Head
+    ctx.fillStyle = "#ffdbac";
+    ctx.fillRect(ox + 13, oy + 5, 14, 15);
 
-        function draw() {
-            // Ciel
-            ctx.fillStyle = "#87CEEB";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // 3. Cap
+    ctx.fillStyle = "#e74c3c";
+    ctx.fillRect(ox + 10, oy, 17, 6); 
+    ctx.fillRect(ox + 18, oy + 4, 14, 3); 
 
-            // Soleil
-            ctx.fillStyle = "#f1c40f";
-            ctx.beginPath();
-            ctx.arc(700, 50, 30, 0, Math.PI * 2);
-            ctx.fill();
+    // 4. Pants
+    ctx.fillStyle = "#2c3e50";
+    ctx.fillRect(ox + 10, oy + 45, 9, 10); 
+    ctx.fillRect(ox + 21, oy + 45, 9, 10); 
 
-            // Sol (Trottoir / Route)
-            ctx.fillStyle = "#7f8c8d";
-            ctx.fillRect(0, 260, canvas.width, 40);
-            ctx.fillStyle = "#95a5a6"; // Ligne du trottoir
-            ctx.fillRect(0, 260, canvas.width, 4);
+    // 5. Skateboard deck & wheels
+    ctx.fillStyle = "#d35400"; 
+    ctx.fillRect(ox, oy + 55, skater.width, 5);
 
-            // Appel de la fonction de dessin du skateur
-            drawSkater();
+    ctx.fillStyle = "#000"; 
+    ctx.beginPath();
+    ctx.arc(ox + 8, oy + 61, 4, 0, Math.PI * 2);
+    ctx.fill();
 
-            // Obstacle (Une bouche d'incendie rouge)
-            ctx.fillStyle = "#e74c3c";
-            ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-            ctx.fillStyle = "#c0392b";
-            ctx.fillRect(obstacle.x + 5, obstacle.y - 5, obstacle.width - 10, 5);
+    ctx.beginPath();
+    ctx.arc(ox + skater.width - 8, oy + 61, 4, 0, Math.PI * 2);
+    ctx.fill();
 
-            // Score
-            ctx.fillStyle = "#fff";
-            ctx.font = "bold 20px Arial";
-            ctx.fillText("Score : " + score, 20, 35);
+    ctx.restore();
+}
 
-            // Écran de fin
-            if (gameOver) {
-                ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = "#fff";
-                ctx.font = "bold 40px Arial";
-                ctx.fillText("GAME OVER", 280, 130);
-                ctx.font = "20px Arial";
-                ctx.fillText("Appuyez sur Espace pour retenter un trick !", 210, 180);
-            }
-        }
+function draw() {
+    // Environment background
+    ctx.fillStyle = "#87CEEB";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        function loop() {
-            update();
-            draw();
-            if (!gameOver) {
-                requestAnimationFrame(loop);
-            }
-        }
+    // Sun
+    ctx.fillStyle = "#f1c40f";
+    ctx.beginPath();
+    ctx.arc(700, 50, 30, 0, Math.PI * 2);
+    ctx.fill();
 
-        loop();
-    </script>
+    // Sidewalk pavement
+    ctx.fillStyle = "#7f8c8d";
+    ctx.fillRect(0, 260, canvas.width, 40);
+    ctx.fillStyle = "#95a5a6"; 
+    ctx.fillRect(0, 260, canvas.width, 4);
+
+    drawSkater();
+
+    // Fire hydrant obstacle
+    ctx.fillStyle = "#e74c3c";
+    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+    ctx.fillStyle = "#c0392b";
+    ctx.fillRect(obstacle.x + 5, obstacle.y - 5, obstacle.width - 10, 5);
+
+    // Score display
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 20px Arial";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+    ctx.shadowBlur = 4;
+    ctx.fillText("Score : " + score, 20, 35);
+    
+    // Clear shadow configurations for elements
+    ctx.shadowBlur = 0;
+
+    if (gameOver) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "center";
+        ctx.font = "bold 40px Arial";
+        ctx.fillText("GAME OVER", canvas.width / 2, 130);
+        
+        ctx.font = "20px Arial";
+        ctx.fillText("Appuyez ou touchez pour retenter !", canvas.width / 2, 180);
+        ctx.textAlign = "left"; // Reset baseline alignment
+    }
+}
+
+function loop() {
+    update();
+    draw();
+    if (!gameOver) {
+        requestAnimationFrame(loop);
+    }
+}
+
+loop();
+</script>
 </body>
 </html>
