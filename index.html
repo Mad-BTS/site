@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <!-- Intégration du script publicitaire officiel de Poki -->
+    <script src="https://poki.com"></script>
     <title>Mad-ME-BTS-Prog - Skate Jump Game</title>
     <style>
         * {
@@ -24,7 +26,6 @@
             overflow: hidden;
         }
 
-        /* STYLE DU GRAND TITRE */
         #game-title {
             font-size: 36px;
             font-weight: 900;
@@ -54,7 +55,6 @@
             cursor: pointer;
         }
 
-        /* Le Skateur */
         #skater {
             width: 40px;
             height: 60px;
@@ -65,7 +65,6 @@
             border-radius: 5px;
         }
 
-        /* La planche de skate */
         #skater::after {
             content: '';
             position: absolute;
@@ -77,7 +76,6 @@
             border-radius: 4px;
         }
 
-        /* L'obstacle (Cône) */
         #obstacle {
             width: 25px;
             height: 40px;
@@ -88,24 +86,14 @@
             clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
         }
 
-        /* Animation de la Roulade Arrière (Backflip) */
         .jump {
             animation: jumpAnimation 0.5s linear;
         }
 
         @keyframes jumpAnimation {
-            0% { 
-                bottom: 0; 
-                transform: rotate(0deg); 
-            }
-            50% { 
-                bottom: 120px; 
-                transform: rotate(-180deg); 
-            }
-            100% { 
-                bottom: 0; 
-                transform: rotate(-360deg); 
-            }
+            0% { bottom: 0; transform: rotate(0deg); }
+            50% { bottom: 120px; transform: rotate(-180deg); }
+            100% { bottom: 0; transform: rotate(-360deg); }
         }
 
         #game-over-text {
@@ -124,7 +112,6 @@
 </head>
 <body>
 
-    <!-- LE GRAND TITRE EN PLACE -->
     <div id="game-title">Mad-ME-BTS-Prog</div>
 
     <div id="score-board">Score : <span id="score">0</span></div>
@@ -148,6 +135,15 @@
         let obstacleSpeed = 5;
         let animationFrameId;
 
+        // Initialisation discrète du SDK de Poki au lancement
+        if (typeof PokiSDK !== 'undefined') {
+            PokiSDK.init().then(() => {
+                console.log("Poki SDK chargé avec succès !");
+            }).catch(() => {
+                console.log("Mode test ou bloqueur de pub actif.");
+            });
+        }
+
         function handleAction() {
             if (isGameOver) {
                 resetGame();
@@ -156,13 +152,11 @@
             }
         }
 
-        // TACTILE GLOBAL (Mobile)
         window.addEventListener("touchstart", function(event) {
             event.preventDefault(); 
             handleAction();
         }, { passive: false });
 
-        // CLAVIER (PC)
         document.addEventListener("keydown", function(event) {
             if (event.code === "Space") {
                 event.preventDefault(); 
@@ -170,7 +164,6 @@
             }
         });
 
-        // SOURIS (PC)
         window.addEventListener("mousedown", function(event) {
             if (event.pointerType !== 'touch') {
                 handleAction();
@@ -220,7 +213,6 @@
             isGameOver = true;
             cancelAnimationFrame(animationFrameId);
             
-            // ÉCRAN DE FIN AVEC OPTIONS PUBLICITAIRES
             gameOverText.innerHTML = `
                 GAME OVER<br>
                 <span style="font-size: 16px; color: #333; display:block; margin-bottom:10px;">Ton score : ${score}</span>
@@ -232,18 +224,29 @@
             gameOverText.style.display = "block";
         }
 
+        // Lancement de la publicité Poki au clic sur le bouton vert
         function regarderPubPourContinuer(event) {
             event.stopPropagation(); 
             
-            // CHANGE LE LIEN CI-DESSOUS AVEC TA VRAIE VIDÉO PLUS TARD
-            window.open("https://tiktok.com", "_blank");
+            if (typeof PokiSDK !== 'undefined') {
+                // Déclenche une vraie pause publicitaire Poki
+                PokiSDK.commercialBreak().then(() => {
+                    reprendreLaPartie();
+                }).catch(() => {
+                    // Sécurité : si la pub échoue à charger, on laisse quand même jouer
+                    reprendreLaPartie();
+                });
+            } else {
+                // Mode test local sur ton PC
+                reprendreLaPartie();
+            }
+        }
 
+        function reprendreLaPartie() {
             isGameOver = false;
             gameOverText.style.display = "none";
-            
             let containerWidth = container.offsetWidth;
             obstacle.style.left = containerWidth + "px";
-            
             gameLoop();
         }
 
