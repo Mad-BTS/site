@@ -106,6 +106,81 @@
             text-align: center;
             width: 100%;
         }
+
+        /* --- ÉCRAN DE LA PUB AVEC LOGO ET TITRE --- */
+        #simulation-pub {
+            display: none; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1e272e;
+            z-index: 20;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #logo-simu {
+            width: 80px;
+            height: 35px;
+            background-color: #ff4757;
+            border-radius: 6px;
+            position: relative;
+            margin-bottom: 10px;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+        }
+
+        #logo-simu::before, #logo-simu::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            width: 12px;
+            height: 12px;
+            background: #333;
+            border-radius: 50%;
+            border: 2px solid #2ed573;
+        }
+        #logo-simu::before { left: 8px; }
+        #logo-simu::after { right: 8px; }
+
+        .badge-gratuit {
+            background-color: #2ed573;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .barre-chargement-conteneur {
+            width: 50%;
+            height: 6px;
+            background-color: #485460;
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .barre-chargement-progression {
+            width: 0%;
+            height: 100%;
+            background-color: #2ed573;
+            animation: faussePubAnim 5s linear forwards;
+        }
+
+        @keyframes faussePubAnim {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
     </style>
 </head>
 <body>
@@ -119,11 +194,17 @@
         <div id="obstacle"></div>
         <div id="game-over-text"></div>
         
-        <!-- J'ai mis ici le nom exact de ton fichier détecté : ma-video.mp4.mp4 -->
-        <video id="pub-video" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 10;" playsinline muted controls>
-            <source src="ma-video.mp4.mp4" type="video/mp4">
-            Votre navigateur ne supporte pas les vidéos.
-        </video>
+        <!-- ÉCRAN DE PUB SIMULÉE SANS COMPORTEMENT CAPRICIEUX -->
+        <div id="simulation-pub">
+            <div class="badge-gratuit">100% GRATUIT</div>
+            <div id="logo-simu"></div>
+            <h2 style="color: #ffffff; font-size: 22px; font-weight: 900; text-transform: uppercase; margin-bottom: 2px;">Mad-ME-BTS-Prog</h2>
+            <p style="font-size: 12px; color: #dcdde1; margin-bottom: 5px;">Skate Jump Game</p>
+            <p id="decompte" style="font-size: 32px; font-weight: 900; color: #ffa502;">5s</p>
+            <div class="barre-chargement-conteneur">
+                <div class="barre-chargement-progression"></div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -132,12 +213,13 @@
         const obstacle = document.getElementById("obstacle");
         const scoreDisplay = document.getElementById("score");
         const gameOverText = document.getElementById("game-over-text");
-        const pubVideo = document.getElementById("pub-video");
+        const simuPub = document.getElementById("simulation-pub");
+        const decompteDisplay = document.getElementById("decompte");
 
         let score = 0;
         let isJumping = false;
         let isGameOver = false;
-        let isWatchingPub = false;
+        let isWatchingPub = false; 
         let obstacleSpeed = 5;
         let animationFrameId;
 
@@ -234,54 +316,3 @@
                 </button>
                 <br><span style="font-size: 14px; color: #666; display:block; margin-top:10px;">Ou touche l'écran ailleurs pour recommencer à 0</span>
             `;
-            gameOverText.style.display = "block";
-        }
-
-        function regarderPubPourContinuer(event) {
-            if (event) {
-                event.preventDefault();
-                event.stopPropagation(); 
-            }
-
-            gameOverText.style.display = "none";
-            isWatchingPub = true;
-
-            pubVideo.style.display = "block";
-            pubVideo.currentTime = 0;
-            
-            pubVideo.play().catch(error => {
-                console.log("Lecture auto bloquée, secours actif.", error);
-                setTimeout(reprendreLaPartie, 4000);
-            });
-        }
-
-        pubVideo.onended = function() {
-            reprendreLaPartie();
-        };
-
-        function reprendreLaPartie() {
-            pubVideo.style.display = "none";
-            isWatchingPub = false;
-            isGameOver = false;
-            gameOverText.style.display = "none";
-            let containerWidth = container.offsetWidth;
-            obstacle.style.left = containerWidth + "px"; 
-            gameLoop();
-        }
-
-        function resetGame() {
-            if (isWatchingPub) return;
-            isGameOver = false;
-            score = 0;
-            obstacleSpeed = 5;
-            scoreDisplay.innerText = score;
-            gameOverText.style.display = "none";
-            obstacle.style.left = "100%";
-            cancelAnimationFrame(animationFrameId);
-            gameLoop();
-        }
-
-        gameLoop();
-    </script>
-</body>
-</html>
