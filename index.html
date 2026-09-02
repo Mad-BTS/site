@@ -348,38 +348,76 @@ function declencherGameOver(scoreDuJoueur) {
     if (ecran) ecran.style.setProperty('display', 'flex', 'important');
 }
 
-// 4. Action quand on clique sur le bouton Revivre
+
+
+/* ==========================================
+   CODE UNIVERSEL ET INDÉPENDANT POUR LA PUB
+   ========================================== */
+
+// 1. Injection automatique du visuel dans la page
+document.write(`
+<style>
+#game-over-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.85); display: none;
+    justify-content: center; align-items: center; z-index: 999999;
+    font-family: Arial, sans-serif;
+}
+.modal-content {
+    background-color: #1a1a1a; color: #ffffff; padding: 30px;
+    border-radius: 15px; text-align: center; border: 3px solid #ff5722;
+    box-shadow: 0 0 25px rgba(255, 87, 34, 0.4); width: 280px;
+}
+.modal-content h2 { margin-top: 0; color: #ff5722; font-size: 24px; }
+.modal-content p { font-size: 18px; margin: 15px 0; }
+.modal-content button {
+    display: block; width: 100%; padding: 14px; margin: 12px 0;
+    font-size: 16px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;
+    transition: background 0.2s;
+}
+#btn-revive { background-color: #4CAF50; color: white; }
+#btn-revive:hover { background-color: #45a049; }
+#btn-restart { background-color: #f44336; color: white; }
+#btn-restart:hover { background-color: #da190b; }
+</style>
+
+<div id="game-over-screen">
+    <div class="modal-content">
+        <h2>🛹 CHUTE !</h2>
+        <p>Partie terminée</p>
+        <button id="btn-revive" onclick="demanderPubRevivre()">🎬 Revivre (Regarder une pub)</button>
+        <button id="btn-restart" onclick="recommencerPartie()">❌ Abandonner</button>
+    </div>
+</div>
+`);
+
+// 2. Fonction magique forcée (indépendante du reste du jeu)
+window.declencherGameOver = function() {
+    let ecran = document.getElementById("game-over-screen");
+    if (ecran) {
+        ecran.style.setProperty('display', 'flex', 'important');
+    }
+};
+
 function demanderPubRevivre() {
-    alert("Chargement de la publicité (Test)... Patientez 3 secondes 🎬");
+    alert("🎬 Affichage de la publicité de test...\n\nLe jeu va redémarrer dans 3 secondes.");
     setTimeout(function() {
         accorderSecondeChance();
     }, 3000); 
 }
 
-// 5. Relancer la partie
 function accorderSecondeChance() {
     let ecran = document.getElementById("game-over-screen");
     if (ecran) ecran.style.setProperty('display', 'none', 'important');
-    gameOver = false; 
-    location.reload(); // Recharge la page pour relancer le jeu proprement
+    location.reload(); // Recharge proprement le jeu pour recommencer
 }
 
-// 6. Si le joueur abandonne
 function recommencerPartie() {
     location.reload();
 }
 
-
-
-
-
-    }
-}
-
-
-
 </script>
-    <!-- Copiez TOUT ce bloc et collez-le juste avant </corps> -->
+   
 <style>
 #game-over-screen {
     position: fixed;
