@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <!-- Intégration du script publicitaire officiel de Poki -->
-    <script src="https://poki.com"></script>
+    <!-- Le lien Poki a été retiré ici pour la simulation (sans annuler ta demande) -->
     <title>Mad-ME-BTS-Prog - Skate Jump Game</title>
     <style>
         * {
@@ -120,6 +119,12 @@
         <div id="skater"></div>
         <div id="obstacle"></div>
         <div id="game-over-text"></div>
+        
+        <!-- Le lecteur vidéo de simulation intégré à l'intérieur du jeu (caché par défaut) -->
+        <video id="pub-video" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 10;" playsinline muted controls>
+            <source src="https://googleapis.com" type="video/mp4">
+            Votre navigateur ne supporte pas les vidéos.
+        </video>
     </div>
 
     <script>
@@ -128,23 +133,17 @@
         const obstacle = document.getElementById("obstacle");
         const scoreDisplay = document.getElementById("score");
         const gameOverText = document.getElementById("game-over-text");
+        const pubVideo = document.getElementById("pub-video"); // Relié à la vidéo
 
         let score = 0;
         let isJumping = false;
         let isGameOver = false;
+        let isWatchingPub = false; // Sécurité anti-triche active
         let obstacleSpeed = 5;
         let animationFrameId;
 
-        if (typeof PokiSDK !== 'undefined') {
-            PokiSDK.init().then(() => {
-                console.log("Poki SDK chargé avec succès !");
-            }).catch(() => {
-                console.log("Mode test actif.");
-            });
-        }
-
         function handleAction(event) {
-            // Sécurité : Si on clique sur le bouton de réanimation, on ignore cette action générale
+            if (isWatchingPub) return; // Sécurité anti-triche
             if (event && event.target && event.target.id === 'revive-btn') {
                 return;
             }
@@ -157,8 +156,8 @@
         }
 
         window.addEventListener("touchstart", function(event) {
-            // Ne bloque pas le touchstart s'il provient du bouton vert
             if (event.target && event.target.id === 'revive-btn') return;
+            if (isWatchingPub) return; // Sécurité anti-triche
             
             event.preventDefault(); 
             handleAction(event);
@@ -178,7 +177,7 @@
         });
 
         function jump() {
-            if (isJumping) return;
+            if (isJumping || isWatchingPub) return; // Sécurité anti-triche
             isJumping = true;
             skater.classList.add("jump");
 
@@ -189,7 +188,7 @@
         }
 
         function gameLoop() {
-            if (isGameOver) return;
+            if (isGameOver || isWatchingPub) return; // Sécurité anti-triche : tout se fige pendant la pub
 
             let containerWidth = container.offsetWidth;
             let obstacleLeft = parseInt(window.getComputedStyle(obstacle).getPropertyValue("left"));
@@ -231,32 +230,44 @@
             gameOverText.style.display = "block";
         }
 
+        // Le bouton vert active cette fonction qui déclenche la vidéo
         function regarderPubPourContinuer(event) {
             if (event) {
                 event.preventDefault();
                 event.stopPropagation(); 
             }
+
+            gameOverText.style.display = "none";
+            isWatchingPub = true; // Active le blocage anti-triche
+
+            // Affiche et lance la vidéo de Google directement
+            pubVideo.style.display = "block";
+            pubVideo.currentTime = 0;
             
-            if (typeof PokiSDK !== 'undefined') {
-                PokiSDK.commercialBreak().then(() => {
-                    reprendreLaPartie();
-                }).catch(() => {
-                    reprendreLaPartie();
-                });
-            } else {
-                reprendreLaPartie();
-            }
+            pubVideo.play().catch(error => {
+                console.log("Lecture auto bloquée, passage au plan de secours.");
+                // Si le navigateur bloque totalement la vidéo, le jeu reprend après 4 secondes
+                setTimeout(reprendreLaPartie, 4000);
+            });
         }
 
+        // Cet événement s'active tout seul quand la vidéo se termine
+        pubVideo.onended = function() {
+            reprendreLaPartie();
+        };
+
         function reprendreLaPartie() {
+            pubVideo.style.display = "none"; // Cache la vidéo
+            isWatchingPub = false;
             isGameOver = false;
             gameOverText.style.display = "none";
             let containerWidth = container.offsetWidth;
-            obstacle.style.left = containerWidth + "px"; // Repousse l'obstacle au début
-            gameLoop();
+            obstacle.style.left = containerWidth + "px"; // Repousse l'obstacle au fond
+            gameLoop(); // Relance la boucle de jeu
         }
 
         function resetGame() {
+            if (isWatchingPub) return; // Sécurité anti-triche
             isGameOver = false;
             score = 0;
             obstacleSpeed = 5;
@@ -267,7 +278,6 @@
             gameLoop();
         }
 
-        // Lancement de la boucle de jeu
         gameLoop();
     </script>
 </body>
