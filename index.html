@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Mad-Me-BTS-Prog -Skate Jump Game </title>
+    <title>Mad-ME-BTS-Prog - Skate Jump Game</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            /* Supprime l'effet de flash bleu au clic sur mobile */
             -webkit-tap-highlight-color: transparent;
             user-select: none;
         }
@@ -23,6 +22,25 @@
             justify-content: center;
             height: 100vh;
             overflow: hidden;
+        }
+
+        /* STYLE DU GRAND TITRE */
+        #game-title {
+            font-size: 36px;
+            font-weight: 900;
+            color: #ff4757;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 0px #333;
+            text-align: center;
+        }
+
+        #score-board {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
         }
 
         #game-container {
@@ -90,13 +108,6 @@
             }
         }
 
-        #score-board {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #333;
-        }
-
         #game-over-text {
             display: none;
             position: absolute;
@@ -113,12 +124,15 @@
 </head>
 <body>
 
+    <!-- LE GRAND TITRE EN PLACE -->
+    <div id="game-title">Mad-ME-BTS-Prog</div>
+
     <div id="score-board">Score : <span id="score">0</span></div>
     
     <div id="game-container">
         <div id="skater"></div>
         <div id="obstacle"></div>
-        <div id="game-over-text">GAME OVER<br><span style="font-size: 16px; color: #333;">Touche l'écran ou Espace pour rejouer</span></div>
+        <div id="game-over-text"></div>
     </div>
 
     <script>
@@ -134,7 +148,6 @@
         let obstacleSpeed = 5;
         let animationFrameId;
 
-        // Fonction principale déclenchée par le tactile ou le clavier
         function handleAction() {
             if (isGameOver) {
                 resetGame();
@@ -143,14 +156,13 @@
             }
         }
 
-        // 1. TACTILE (Pour tous les smartphones et tablettes)
-        // On écoute sur 'window' pour que le joueur puisse taper n'importe où sur l'écran
+        // TACTILE GLOBAL (Mobile)
         window.addEventListener("touchstart", function(event) {
-            event.preventDefault(); // Bloque le zoom automatique du téléphone
+            event.preventDefault(); 
             handleAction();
         }, { passive: false });
 
-        // 2. CLAVIER (Pour la barre d'espace sur PC)
+        // CLAVIER (PC)
         document.addEventListener("keydown", function(event) {
             if (event.code === "Space") {
                 event.preventDefault(); 
@@ -158,9 +170,8 @@
             }
         });
 
-        // 3. CLIC SOURIS (Alternative pratique sur PC)
+        // SOURIS (PC)
         window.addEventListener("mousedown", function(event) {
-            // Évite le double déclenchement si on est sur mobile (car touchstart simule parfois un clic)
             if (event.pointerType !== 'touch') {
                 handleAction();
             }
@@ -197,7 +208,6 @@
 
             let skaterBottom = parseInt(window.getComputedStyle(skater).getPropertyValue("bottom"));
             
-            // Collision ajustée pour la boîte de réception
             if (obstacleLeft > 50 && obstacleLeft < 90 && skaterBottom < 40) {
                 endGame();
                 return;
@@ -208,8 +218,33 @@
 
         function endGame() {
             isGameOver = true;
-            gameOverText.style.display = "block";
             cancelAnimationFrame(animationFrameId);
+            
+            // ÉCRAN DE FIN AVEC OPTIONS PUBLICITAIRES
+            gameOverText.innerHTML = `
+                GAME OVER<br>
+                <span style="font-size: 16px; color: #333; display:block; margin-bottom:10px;">Ton score : ${score}</span>
+                <button id="revive-btn" onclick="regarderPubPourContinuer(event)" style="background-color: #2ed573; color: white; font-size: 16px; font-weight: bold; padding: 10px 20px; border: none; border-radius: 25px; cursor: pointer; box-shadow: 0px 4px 6px rgba(0,0,0,0.1);">
+                    🎬 Continuer le score (Regarder la pub)
+                </button>
+                <br><span style="font-size: 14px; color: #666; display:block; margin-top:10px;">Ou touche l'écran ailleurs pour recommencer à 0</span>
+            `;
+            gameOverText.style.display = "block";
+        }
+
+        function regarderPubPourContinuer(event) {
+            event.stopPropagation(); 
+            
+            // CHANGE LE LIEN CI-DESSOUS AVEC TA VRAIE VIDÉO PLUS TARD
+            window.open("https://tiktok.com", "_blank");
+
+            isGameOver = false;
+            gameOverText.style.display = "none";
+            
+            let containerWidth = container.offsetWidth;
+            obstacle.style.left = containerWidth + "px";
+            
+            gameLoop();
         }
 
         function resetGame() {
@@ -222,7 +257,6 @@
             gameLoop();
         }
 
-        // Lancement immédiat
         gameLoop();
     </script>
 </body>
