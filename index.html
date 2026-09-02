@@ -1,66 +1,194 @@
-using UnityEngine;
-using UnityEngine.UI;
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skate Jump Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-public class MadMeBTSGame : MonoBehaviour
-{
-    [Header("Configuration du Jeu : Mad-Me-BTS")]
-    public float vitesseSkate = 5f;
-    private bool estEnTrainDeRouler = false;
+        body {
+            background-color: #f7f7f7;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
 
-    [Header("Interface UI")]
-    public Text texteStatut;
+        #game-container {
+            width: 800px;
+            height: 250px;
+            border-bottom: 5px solid #333;
+            position: relative;
+            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+            overflow: hidden;
+        }
 
-    void Start()
-    {
-        MettreAJourStatut("Mad-Me-BTS : Prêt");
-    }
+        /* Le Skateur (représenté de manière simple) */
+        #skater {
+            width: 40px;
+            height: 60px;
+            position: absolute;
+            bottom: 0;
+            left: 50px;
+            background-color: #ff4757;
+            border-radius: 5px;
+        }
 
-    void Update()
-    {
-        // 1. Le skater avance tout seul en ligne droite
-        transform.Translate(Vector3.forward * vitesseSkate * Time.deltaTime);
+        /* La planche de skate */
+        #skater::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: -5px;
+            width: 50px;
+            height: 8px;
+            background-color: #2ed573;
+            border-radius: 4px;
+        }
 
-        // 2. GESTION DU TACTILE POUR MOBILE
-        if (Input.touchCount > 0) 
-        {
-            Touch touche = Input.GetTouch(0);
+        /* L'obstacle (Cône) */
+        #obstacle {
+            width: 25px;
+            height: 40px;
+            background-color: #ffa502;
+            position: absolute;
+            bottom: 0;
+            left: 800px;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
 
-            // Dès que le joueur pose le doigt sur l'écran du téléphone
-            if (touche.phase == TouchPhase.Began)
-            {
-                FaireRouladeArriere();
+        /* Animation du saut */
+        .jump {
+            animation: jumpAnimation 0.5s linear;
+        }
+
+        @keyframes jumpAnimation {
+            0% { bottom: 0; }
+            50% { bottom: 100px; }
+            100% { bottom: 0; }
+        }
+
+        #score-board {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        #game-over-text {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            font-weight: bold;
+            color: #ff4757;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="score-board">Score : <span id="score">0</span></div>
+    
+    <div id="game-container">
+        <div id="skater"></div>
+        <div id="obstacle"></div>
+        <div id="game-over-text">GAME OVER<br><span style="font-size: 18px; color: #333;">Appuie sur Espace pour rejouer</span></div>
+    </div>
+
+    <script>
+        const skater = document.getElementById("skater");
+        const obstacle = document.getElementById("obstacle");
+        const scoreDisplay = document.getElementById("score");
+        const gameOverText = document.getElementById("game-over-text");
+
+        let score = 0;
+        let isJumping = false;
+        let isGameOver = false;
+        let obstacleSpeed = 5;
+
+        // Gestion des touches (Espace pour sauter ou recommencer)
+        document.addEventListener("keydown", function(event) {
+            if (event.code === "Space") {
+                if (isGameOver) {
+                    resetGame();
+                } else {
+                    jump();
+                }
             }
+        });
+
+        function jump() {
+            if (isJumping) return;
+            isJumping = true;
+            skater.classList.add("jump");
+
+            // Retire la classe après l'animation (500ms)
+            setTimeout(() => {
+                skater.classList.remove("jump");
+                isJumping = false;
+            }, 500);
         }
 
-        // 3. CONTRÔLE POUR PC (Barre d'espace)
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            FaireRouladeArriere();
-        }
-    }
+        // Boucle principale du jeu pour déplacer l'obstacle
+        function gameLoop() {
+            if (isGameOver) return;
 
-    // Fonction de l'esquive
-    public void FaireRouladeArriere()
-    {
-        if (!estEnTrainDeRouler)
-        {
-            estEnTrainDeRouler = true;
-            MettreAJourStatut("Esquive ! Roulade arrière !");
+            // Déplacement de l'obstacle vers la gauche
+            let obstacleLeft = parseInt(window.getComputedStyle(obstacle).getPropertyValue("left"));
             
-            // Simule la fin de la roulade après 1 seconde
-            Invoke("FinRoulade", 1f);
+            if (obstacleLeft < -25) {
+                // L'obstacle a dépassé l'écran, on le remet à droite
+                obstacleLeft = 800;
+                score++;
+                scoreDisplay.innerText = score;
+                
+                // Augmente légèrement la vitesse au fil du temps
+                if (score % 5 === 0) {
+                    obstacleSpeed += 1;
+                }
+            }
+            
+            obstacle.style.left = (obstacleLeft - obstacleSpeed) + "px";
+
+            // Détection des collisions
+            let skaterBottom = parseInt(window.getComputedStyle(skater).getPropertyValue("bottom"));
+            
+            // Si l'obstacle touche horizontalement et verticalement le skateur
+            if (obstacleLeft > 50 && obstacleLeft < 90 && skaterBottom < 40) {
+                endGame();
+            }
+
+            requestAnimationFrame(gameLoop);
         }
-    }
 
-    void FinRoulade()
-    {
-        estEnTrainDeRouler = false;
-        MettreAJourStatut("Sur le skate");
-    }
+        function endGame() {
+            isGameOver = true;
+            gameOverText.style.display = "block";
+        }
 
-    void MettreAJourStatut(string message)
-    {
-        if (texteStatut != null) texteStatut.text = message;
-        Debug.Log(message);
-    }
-}
+        function resetGame() {
+            isGameOver = false;
+            score = 0;
+            obstacleSpeed = 5;
+            scoreDisplay.innerText = score;
+            gameOverText.style.display = "none";
+            obstacle.style.left = "800px";
+            gameLoop();
+        }
+
+        // Lancement initial du jeu
+        gameLoop();
+    </script>
+</body>
+</html>
