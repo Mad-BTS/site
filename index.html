@@ -1,345 +1,97 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mad-BTS-Prog</title>
-    <!-- SCRIPT OFFICIEL GOOGLE ADMOB (Chargement de la régie publicitaire) -->
-    <script src="https://googlesyndication.com" crossorigin="anonymous" async></script>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #1a1a1a;
-            font-family: Arial, sans-serif;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        body {
-            display: flex;
-            flex-direction: column;
-        }
-        .header-ui {
-            padding: 12px;
-            text-align: center;
-            color: white;
-            background: #222;
-            border-bottom: 2px solid #ff5722;
-            z-index: 10;
-        }
-        h1 {
-            font-size: 1.4rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #ff5722;
-        }
-        p {
-            font-size: 0.85rem;
-            color: #ccc;
-            margin-top: 3px;
-        }
-        .game-container {
-            flex: 1;
-            width: 100%;
-            position: relative;
-        }
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
+using UnityEngine;
+using UnityEngine.UI;
 
-        /* Interface tactiles mobiles */
-        .mobile-controls {
-            display: none;
-            position: absolute;
-            bottom: 15px;
-            left: 0;
-            width: 100%;
-            padding: 0 20px;
-            justify-content: space-between;
-            z-index: 20;
-        }
-        .mobile-btn {
-            background: rgba(255, 87, 34, 0.8);
-            color: white;
-            border: 2px solid white;
-            padding: 15px 25px;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            outline: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-        .mobile-btn:active {
-            background: rgba(231, 76, 60, 0.9);
-            transform: scale(0.95);
-        }
+public class MadMeBTSGame : MonoBehaviour
+{
+    [Header("Configuration du Jeu : Mad-Me-BTS")]
+    public float vitesseSkate = 5f;
+    private bool estEnTrainDeRouler = false;
 
-        /* Pop-up AdMob de Chute */
-        #game-over-screen {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.75);
-            display: none;
-            justify-content: center; align-items: center;
-            z-index: 99999;
-        }
-        .modal-content {
-            background-color: #222222;
-            color: #ffffff;
-            padding: 30px;
-            border-radius: 15px;
-            text-align: center;
-            border: 3px solid #ff5722;
-            box-shadow: 0 0 25px rgba(255, 87, 34, 0.4);
-            width: 290px;
-        }
-        .modal-content h2 {
-            font-size: 24px;
-            color: #e74c3c;
-            margin-bottom: 10px;
-        }
-        .modal-content button {
-            display: block;
-            width: 100%;
-            padding: 14px;
-            margin: 12px 0;
-            font-size: 16px;
-            font-weight: bold;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            text-transform: uppercase;
-        }
-        #btn-revive { background-color: #4CAF50; color: white; }
-        #btn-restart { background-color: #f44336; color: white; }
+    [Header("Interface UI")]
+    public Text texteStatut;
+    public Button boutonPubRecompense;
 
-        @media (max-width: 850px) {
-            .mobile-controls {
-                display: flex;
+    // Identifiants de test Google AdMob (À remplacer plus tard par ton vrai ID)
+    private string adUnitId = "ca-app-pub-3940256099942544/5224354917"; 
+
+    void Start()
+    {
+        // Connexion de la fonction au bouton de la pub
+        if (boutonPubRecompense != null)
+        {
+            boutonPubRecompense.onClick.AddListener(AfficherPublicite);
+        }
+        
+        MettreAJourStatut("Mad-Me-BTS : Prêt sur Mobile");
+    }
+
+    void Update()
+    {
+        // 1. Le skater avance tout seul en ligne droite
+        transform.Translate(Vector3.forward * vitesseSkate * Time.deltaTime);
+
+        // 2. GESTION DU TACTILE POUR MOBILE
+        if (Input.touchCount > 0) 
+        {
+            Touch touche = Input.GetTouch(0);
+
+            // Dès que le joueur pose le doigt sur l'écran
+            if (touche.phase == TouchPhase.Began)
+            {
+                // On vérifie qu'il ne clique pas sur le bouton de la pub
+                if (!EstSurUnBoutonUI(touche.position))
+                {
+                    FaireRouladeArriere();
+                }
             }
         }
-    </style>
-</head>
-<body>
 
-    <div class="header-ui">
-        <h1>Mad-BTS-Prog</h1>
-        <p>Espace sur Ordi ou Boutons Tactiles sur Mobile !</p>
-    </div>
-    
-    <div class="game-container">
-        <canvas id="jeuCanvas"></canvas>
-        
-        <div class="mobile-controls">
-            <button class="mobile-btn" id="btn-mobile-reset" onclick="handleMobileReset()">🔄 Relancer</button>
-            <button class="mobile-btn" id="btn-mobile-jump" onclick="handleAction()">SAUTER 🛹</button>
-        </div>
-    </div>
-
-    <!-- Écran publicitaire AdMob -->
-    <div id="game-over-screen">
-        <div class="modal-content">
-            <h2>🛹 CHUTE !</h2>
-            <p>Score actuel : <span id="current-score" style="color:#ff5722; font-weight:bold; font-size:20px;">0</span> points</p>
-            <button id="btn-revive" onclick="demanderPubRevivre()">🎬 Revivre (Regarder une pub)</button>
-            <button id="btn-restart" onclick="recommencerPartie()">❌ Abandonner</button>
-        </div>
-    </div>
-
-<script>
-const canvas = document.getElementById("jeuCanvas");
-const ctx = canvas.getContext("2d");
-
-// Configuration et redimensionnement automatique
-let GROUND_Y = 200;
-const GRAVITY = 0.6;
-const JUMP_POWER = -12;
-
-const airTimeFrames = Math.abs(JUMP_POWER / GRAVITY) * 2;
-const rotationStep = (Math.PI * 2) / airTimeFrames;
-
-let skater = {
-    x: 60, y: GROUND_Y,
-    width: 40, height: 60,
-    vy: 0, gravity: GRAVITY, jumpPower: JUMP_POWER,
-    isJumping: false, angle: 0
-};
-
-let obstacle = {
-    x: 900, y: 0,
-    width: 30, height: 40,
-    speed: 6.5
-};
-
-let score = 0;
-let gameOver = false;
-
-// Variables pour l'intégration de la vraie publicité Google AdMob
-let adRewarded = null;
-const AD_REWARDED_ID = 'ca-app-pub-3940256099942544/5224354917'; // Identifiant de test AdMob officiel
-
-function initialiserAdMob() {
-    if (typeof admob !== 'undefined') {
-        admob.rewarded.load({
-            id: AD_REWARDED_ID
-        }).then((ad) => {
-            adRewarded = ad;
-            console.log("AdMob : Vidéo publicitaire chargée avec succès !");
-        }).catch((err) => {
-            console.error("AdMob Erreur :", err);
-        });
-    }
-}
-
-// Lancement automatique d'AdMob dès l'ouverture du site
-window.onload = function() {
-    initialiserAdMob();
-};
-
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = canvas.parentElement.clientHeight;
-    GROUND_Y = canvas.height - 110; 
-    if (!skater.isJumping) {
-        skater.y = GROUND_Y;
-    }
-    obstacle.y = GROUND_Y + 20;
-}
-
-window.addEventListener('resize', resizeCanvas);
-setTimeout(resizeCanvas, 100);
-
-function handleAction() {
-    if (document.getElementById("game-over-screen").style.display === "flex") return;
-
-    if (!skater.isJumping && !gameOver) {
-        skater.vy = skater.jumpPower;
-        skater.isJumping = true;
-    }
-}
-
-function handleMobileReset() {
-    if (gameOver && document.getElementById("game-over-screen").style.display !== "flex") {
-        resetGame();
-    }
-}
-
-document.addEventListener("keydown", function(e) {
-    if (e.code === "Space") {
-        e.preventDefault();
-        if (gameOver && document.getElementById("game-over-screen").style.display !== "flex") {
-            resetGame();
-        } else {
-            handleAction();
+        // Optionnel : Permet de tester aussi sur PC avec la barre d'espace
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            FaireRouladeArriere();
         }
     }
-});
 
-function update() {
-    if (gameOver) return;
-
-    skater.vy += skater.gravity;
-    skater.y += skater.vy;
-
-    if (skater.isJumping) {
-        skater.angle += rotationStep;
+    public void FaireRouladeArriere()
+    {
+        if (!estEnTrainDeRouler)
+        {
+            estEnTrainDeRouler = true;
+            MettreAJourStatut("Esquive Tactile ! Roulade arrière !");
+            
+            // Simule la fin de la roulade après 1 seconde
+            Invoke("FinRoulade", 1f);
+        }
     }
 
-    if (skater.y > GROUND_Y) {
-        skater.y = GROUND_Y;
-        skater.vy = 0;
-        skater.isJumping = false;
-        skater.angle = 0; 
+    void FinRoulade()
+    {
+        estEnTrainDeRouler = false;
+        MettreAJourStatut("Sur le skate");
     }
 
-    obstacle.x -= obstacle.speed;
-    if (obstacle.x < -obstacle.width) {
-        obstacle.x = canvas.width + Math.random() * 150; 
-        score++;
-        obstacle.speed += 0.35; 
+    public void AfficherPublicite()
+    {
+        MettreAJourStatut("Chargement de la publicité...");
+        Invoke("PubliciteTermineeRecompense", 2f); // Simule 2 secondes de pub
     }
 
-    let skaterHitbox = {
-        x: skater.x + 8, y: skater.y + 5,
-        width: skater.width - 16, height: skater.height - 5
-    };
+    void PubliciteTermineeRecompense()
+    {
+        MettreAJourStatut("Pub visionnée ! +100 Pièces BTS");
+    }
 
-    if (
-        obstacle.x < skaterHitbox.x + skaterHitbox.width &&
-        obstacle.x + obstacle.width > skaterHitbox.x &&
-        obstacle.y < skaterHitbox.y + skaterHitbox.height &&
-        obstacle.y + obstacle.height > skaterHitbox.y
-    ) {
-        gameOver = true;
-        document.getElementById("current-score").innerText = score;
-        document.getElementById("game-over-screen").style.display = "flex";
+    void MettreAJourStatut(string message)
+    {
+        if (texteStatut != null) texteStatut.text = message;
+        Debug.Log(message);
+    }
+
+    // Permet d'éviter de déclencher une roulade si on clique sur le bouton Pub
+    private bool EstSurUnBoutonUI(Vector2 positionTactile)
+    {
+        return UnityEngine.EventSystems.EventSystem.current != null && 
+               UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject(Input.GetTouch(0).fingerId);
     }
 }
-
-function drawSkater() {
-    ctx.save();
-    ctx.translate(skater.x + skater.width / 2, skater.y + skater.height / 2);
-    ctx.rotate(skater.angle);
-
-    let ox = -skater.width / 2;
-    let oy = -skater.height / 2;
-
-    ctx.fillStyle = "#3498db";
-    ctx.fillRect(ox + 10, oy + 20, 20, 25);
-
-    ctx.fillStyle = "#ffdbac";
-    ctx.fillRect(ox + 13, oy + 5, 14, 15);
-
-    ctx.fillStyle = "#e74c3c";
-    ctx.fillRect(ox + 10, oy, 17, 6); 
-    ctx.fillRect(ox + 18, oy + 4, 14, 3); 
-
-    ctx.fillStyle = "#2c3e50";
-    ctx.fillRect(ox + 10, oy + 45, 9, 10); 
-    ctx.fillRect(ox + 21, oy + 45, 9, 10); 
-
-    ctx.fillStyle = "#d35400"; 
-    ctx.fillRect(ox, oy + 55, skater.width, 5);
-
-    ctx.fillStyle = "#000"; 
-    ctx.beginPath(); ctx.arc(ox + 8, oy + 61, 4, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(ox + skater.width - 8, oy + 61, 4, 0, Math.PI * 2); ctx.fill();
-
-    ctx.restore();
-}
-
-function draw() {
-    let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, '#1a2a6c');
-    gradient.addColorStop(0.5, '#b21f1f');
-    gradient.addColorStop(1, '#fdbb2d');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-    ctx.beginPath();
-    ctx.arc(canvas.width - 100, 90, 45, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = "#333333";
-    ctx.fillRect(0, GROUND_Y + 60, canvas.width, canvas.height - GROUND_Y);
-    ctx.fillStyle = "#ff5722"; 
-    ctx.fillRect(0, GROUND_Y + 60, canvas.width, 4);
-
-    drawSkater();
-
-    ctx.fillStyle = "#e74c3c";
-    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-    ctx.fillStyle = "#c0392b";
-    ctx.fillRect(obstacle.x + 5, obstacle.y - 5, obstacle.width - 10, 5);
-
-    ctx.fillStyle = "#fff";
