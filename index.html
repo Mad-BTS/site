@@ -1,308 +1,144 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Mad-ME-BTS-Prog - Skate Jump Game</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
+
+il y a 6 heures
+
+Intégrer une fonctionnalité de simulation publicitaire dans le jeu
+            // Sécurité : Si on regarde une pub ou clique sur le bouton, on ne saute pas
+            si (isWatchingPub) retourner;
+il y a 9 heures
+
+Ajouter des fichiers par téléchargement
+            si (événement && événement.cible && événement.cible.id === 'revive-btn') {
+                retour;
+            }
+            
+            si (isGameOver) {
+                réinitialiser le jeu();
+            } autre {
+                saut();
+            }
         }
-
-        body {
-            background-color: #f7f7f7;
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        #game-title {
-            font-size: 36px;
-            font-weight: 900;
-            color: #ff4757;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 0px #333;
-            text-align: center;
-        }
-
-        #score-board {
-            font-size: 22px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #333;
-        }
-
-        #game-container {
-            width: 100%;
-            max-width: 800px;
-            height: 250px;
-            border-bottom: 5px solid #333;
-            position: relative;
-            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
-            overflow: hidden;
-            cursor: pointer;
-        }
-
-        #skater {
-            width: 40px;
-            height: 60px;
-            position: absolute;
-            bottom: 0;
-            left: 50px;
-            background-color: #ff4757;
-            border-radius: 5px;
-        }
-
-        #skater::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: -5px;
-            width: 50px;
-            height: 8px;
-            background-color: #2ed573;
-            border-radius: 4px;
-        }
-
-        #obstacle {
-            width: 25px;
-            height: 40px;
-            background-color: #ffa502;
-            position: absolute;
-            bottom: 0;
-            left: 100%;
-            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-        }
-
-        .jump {
-            animation: jumpAnimation 0.5s linear;
-        }
-
-        @keyframes jumpAnimation {
-            0% { bottom: 0; transform: rotate(0deg); }
-            50% { bottom: 120px; transform: rotate(-180deg); }
-            100% { bottom: 0; transform: rotate(-360deg); }
-        }
-
-        /* CORRIGÉ : L'écran n'apparaît que mort et ne bloque plus le début */
-        #game-over-text {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 22px;
-            font-weight: bold;
-            color: #ff4757;
-            text-align: center;
-            width: 100%;
-            z-index: 30; 
-        }
-
-        .btn-choix-game {
-            display: inline-block;
-            margin-top: 15px;
-            padding: 8px 16px;
-            font-size: 14px;
-            font-weight: bold;
-            color: white;
-            background-color: #2ed573;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            text-transform: uppercase;
-            box-shadow: 0 4px #1e944f;
-        }
-        .btn-choix-game:active {
-            transform: translateY(2px);
-            box-shadow: 0 2px #1e944f;
-        }
-        #btn-restart-direct {
-            background-color: #ffa502;
-            box-shadow: 0 4px #b87500;
-            margin-left: 8px;
-        }
-        #btn-restart-direct:active {
-            box-shadow: 0 2px #b87500;
-        }
-
-        /* --- ÉCRAN DE LA PUB --- */
-        #simulation-pub {
-            display: none; 
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #1e272e;
-            z-index: 40;
-            color: white;
-            font-family: Arial, sans-serif;
-            text-align: center;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #logo-simu {
-            width: 80px;
-            height: 35px;
-            background-color: #ff4757;
-            border-radius: 6px;
-            position: relative;
-            margin-bottom: 10px;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
-        }
-
-        #logo-simu::before, #logo-simu::after {
-            content: '';
-            position: absolute;
-            bottom: -6px;
-            width: 12px;
-            height: 12px;
-            background: #333;
-            border-radius: 50%;
-            border: 2px solid #2ed573;
-        }
-        #logo-simu::before { left: 8px; }
-        #logo-simu::after { right: 8px; }
-
-        .badge-gratuit {
-            background-color: #2ed573;
-            color: white;
-            font-size: 11px;
-            font-weight: bold;
-            padding: 3px 8px;
-            border-radius: 20px;
-            text-transform: uppercase;
-            margin-bottom: 5px;
-            letter-spacing: 1px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
-        .barre-chargement-conteneur {
-            width: 50%;
-            height: 6px;
-            background-color: #485460;
-            border-radius: 3px;
-            margin-top: 10px;
-            overflow: hidden;
-        }
-
-        .barre-chargement-progression {
-            width: 0%;
-            height: 100%;
-            background-color: #2ed573;
-        }
-
-        @keyframes faussePubAnim {
-            0% { width: 0%; }
-            100% { width: 100%; }
-        }
-
-        #privacy-link {
-            margin-top: 20px;
-            font-size: 11px;
-            color: #777;
-            text-decoration: underline;
-            cursor: pointer;
-        }
-
-        #privacy-modal {
-            display: none;
-            position: fixed;
-            top: 5%; left: 5%; width: 90%; height: 90%;
-            background: white; border: 2px solid #333; padding: 20px;
-            z-index: 100; overflow-y: scroll; border-radius: 8px;
-        }
-    </style>
-</head>
-<body>
-
-    <div id="game-title">Mad-ME-BTS-Prog</div>
-
-    <div id="score-board">Score : <span id="score">0</span></div>
-    
-    <div id="game-container">
-        <div id="skater"></div>
-        <div id="obstacle"></div>
-        
-        <div id="game-over-text">
-            <div>GAME OVER</div>
-            <button id="btn-revive-ad" class="btn-choix-game">🎬 Regarder une pub pour revive</button>
-            <button id="btn-restart-direct" class="btn-choix-game">🔄 Recommencer</button>
-        </div>
-        
-        <div id="simulation-pub">
-            <div class="badge-gratuit">100% GRATUIT</div>
-            <div id="logo-simu"></div>
-            <h2 style="color: #ffffff; font-size: 22px; font-weight: 900; text-transform: uppercase; margin-bottom: 2px;">Mad-ME-BTS-Prog</h2>
-            <p style="font-size: 12px; color: #dcdde1; margin-bottom: 5px;">Skate Jump Game</p>
-            <p id="decompte" style="font-size: 32px; font-weight: 900; color: #ffa502;">5s</p>
-            <div class="barre-chargement-conteneur">
-                <div class="barre-chargement-progression" id="barre-prog"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="privacy-link">Politique de Confidentialité</div>
-
-    <div id="privacy-modal">
-        <h2 style="color:#ff4757; margin-bottom:10px;">Politique de Confidentialité - Mad-ME-BTS-Prog</h2>
-        <p style="font-size:12px; margin-bottom:10px;"><strong>Mise à jour :</strong> Septembre 2026</p>
-        <p style="font-size:12px; margin-bottom:10px;">Cette application respecte votre vie privée. Aucune donnée personnelle identifiable n'est collectée directement par l'application Mad-ME-BTS-Prog. Le jeu utilise Google AdMob pour diffuser des publicités récompensées anonymes (sans son forcé), conformément aux règlements du Google Play Store et de Poki.</p>
-        <button onclick="document.getElementById('privacy-modal').style.display='none'" style="padding:5px 10px; background:#333; color:white; border:none; border-radius:3px; cursor:pointer; margin-top:15px;">Fermer</button>
-    </div>
-
-    <script>
-        const container = document.getElementById("game-container");
-        const skater = document.getElementById("skater");
-        const obstacle = document.getElementById("obstacle");
-        const scoreDisplay = document.getElementById("score");
-        const gameOverText = document.getElementById("game-over-text");
-        const simuPub = document.getElementById("simulation-pub");
-        const decompteDisplay = document.getElementById("decompte");
-        const barreProg = document.getElementById("barre-prog");
-
-        let score = 0;
-        let isJumping = false;
-        let isGameOver = false;
-        let isWatchingPub = false; 
-        let obstacleSpeed = 6;
-        let obstacleLeft = 100;
-        let animationFrameId;
-
-        document.getElementById("privacy-link").addEventListener("click", function() {
-            document.getElementById("privacy-modal").style.display = "block";
-        });
-
-        function handleAction(event) {
-            if (isWatchingPub || isGameOver) return;
-            jump();
-        }
-
         window.addEventListener("touchstart", function(event) {
-            if (event.target && event.target.classList.contains('btn-choix-game')) return;
-            if (isWatchingPub) return;
-            event.preventDefault(); 
-            handleAction(event);
-        }, { passive: false });
+            si (event.target && event.target.id === 'revive-btn') retourner;
+il y a 6 heures
 
+Intégrer une fonctionnalité de simulation publicitaire dans le jeu
+            si (isWatchingPub) retourner;
+il y a 9 heures
+
+Ajouter des fichiers par téléchargement
+            
+            événement.prévenirDefault();
+            gérerAction(événement);
+        }, { passif: faux });
         document.addEventListener("keydown", function(event) {
-            if (event.code === "Space" && !isGameOver) {
-                event.preventDefault(); 
-                handleAction(event);
+            si (event.code === "Espace") {
+                événement.prévenirDefault();
+                gérerAction(événement);
             }
         });
+        fenêtre.addEventListener("mousedown", function(event) {
+            si (event.pointerType !== 'touch') {
+                gérerAction(événement);
+            }
+        });
+        fonction jump() {
+il y a 6 heures
 
-        window.addEventListener("mousedown", function(event) {
+Intégrer une fonctionnalité de simulation publicitaire dans le jeu
+            si (isJumping || isGameOver) retourner;
+il y a 9 heures
+
+Ajouter des fichiers par téléchargement
+            isJumping = vrai ;
+            skater.classList.add("saut");
+            setTimeout(() => {
+                skater.classList.remove("jump");
+                isJumping = faux ;
+            }, 500);
+        }
+        fonction GameLoop() {
+il y a 6 heures
+
+Intégrer une fonctionnalité de simulation publicitaire dans le jeu
+            si (isGameOver || isWatchingPub) retourner;
+il y a 9 heures
+
+Ajouter des fichiers par téléchargement
+            soit containerWidth = container.offsetWidth;
+            let obstacleLeft = parseInt(window.getComputedStyle(obstacle).getPropertyValue("left"));
+            
+            si (obstacleGauche < -25) {
+                obstacleGauche = largeurDuConteneur;
+                score++;
+                scoreDisplay.innerText = score;
+                
+                si (score % 5 === 0) {
+                    obstacleVitesse += 1;
+                }
+            }
+            
+            obstacle.style.gauche = (obstacleGauche - obstacleVitesse) + "px";
+            let skaterBottom = parseInt(window.getComputedStyle(skater).getPropertyValue("bottom"));
+            
+            si (obstacleGauche > 50 && obstacleGauche < 90 && patineurBas < 40) {
+                fin de partie();
+                retour;
+            }
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+        fonction endGame() {
+            isGameOver = vrai ;
+            annulerAnimationFrame(animationFrameId);
+            
+            gameOverText.innerHTML = `
+                FIN DE LA PARTIE<br>
+                <span style="font-size: 16px; color: #333; display:block; margin-bottom:10px;">Score de Ton : ${score}</span>
+                <button id="revive-btn" onclick="regarderPubPourContinuer(event)" style="background-color: #2ed573; color: white; font-size: 16px; font-weight: bold; padding: 10px 20px; border: none; border-radius: 25px; cursor: pointer; box-shadow: 0px 4px 6px rgba(0,0,0,0.1);">
+                    🎬 Continuer le score (Regarder la pub)
+                </button>
+                <br><span style="font-size: 14px; color: #666; display:block; margin-top:10px;">Ou touchez l'écran ailleurs pour recommencer à 0</span>
+            `;
+            gameOverText.style.display = "block";
+        }
+        fonction regarderPubPourContinuer(événement) {
+            si (événement) {
+                événement.prévenirDefault();
+                événement.stopPropagation();
+            }
+            
+il y a 6 heures
+
+Intégrer une fonctionnalité de simulation publicitaire dans le jeu
+            // On cache le texte Game Over temporairement
+il y a 9 heures
+
+Ajouter des fichiers par téléchargement
+            gameOverText.style.display = "none";
+il y a 6 heures
+
+Intégrer une fonctionnalité de simulation publicitaire dans le jeu
+            estRegardePub = vrai;
+il y a 9 heures
+
+Ajouter des fichiers par téléchargement
+il y a 6 heures
+
+Intégrer une fonctionnalité de simulation publicitaire dans le jeu
+            // Déclenchement de la simulation vidéo locale
+            pubContainer.style.display = "flex";
+            pubVideo.currentTime = 0 ; // Remettre la vidéo à zéro
+            
+            // Lancement de la vidéo avec gestion des restrictions de certains navigateurs
+            pubVideo.play().catch(error => {
+                console.log("Lecture auto bloquée, activation du son requis ou clic utilisateur nécessaire.", erreur);
+                // En cas de blocage strict du navigateur, on force quand même la suite
+                setTimeout(reprendreLaPartie, 3000);
+            });
+il y a 9 heures
+
+Ajouter des fichiers par téléchargement
+        }
+il y a 6 heures
+
+Intégrer une fonctionnalité de simulation publicitaire dans le jeu
+        // Événement automatique qui s'active quand ta vidéo se termine
