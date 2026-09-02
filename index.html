@@ -108,6 +108,35 @@
             text-align: center;
             width: 100%;
         }
+
+        /* --- STYLE DE LA FAUSSE PUBLICITÉ --- */
+        #pub-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            display: none; /* Caché par défaut */
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        #pub-contenu {
+            text-align: center;
+            color: white;
+            font-family: sans-serif;
+        }
+
+        #pub-video {
+            max-width: 90%;
+            max-height: 70vh;
+            border: 2px solid #555;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
     </style>
 </head>
 <body>
@@ -122,16 +151,33 @@
         <div id="game-over-text"></div>
     </div>
 
+    <!-- FENÊTRE DE SIMULATION DE PUB DE VIDÉO -->
+    <div id="pub-container">
+        <div id="pub-contenu">
+            <p style="font-size: 18px; margin-bottom: 15px; font-weight: bold; color: #ffa502;">🎬 Publicité en cours (Simulation Poki)...</p>
+            <!-- IMPORTANT : Remplace "ma-video.mp4" par le nom exact de ton fichier vidéo sur ton GitHub -->
+            <video id="pub-video" width="480" height="270" playsinline>
+                <source src="ma-video.mp4" type="video/mp4">
+                Votre navigateur ne supporte pas les vidéos.
+            </video>
+        </div>
+    </div>
+
     <script>
         const container = document.getElementById("game-container");
         const skater = document.getElementById("skater");
         const obstacle = document.getElementById("obstacle");
         const scoreDisplay = document.getElementById("score");
         const gameOverText = document.getElementById("game-over-text");
+        
+        // Nouveaux éléments pour la vidéo
+        const pubContainer = document.getElementById("pub-container");
+        const pubVideo = document.getElementById("pub-video");
 
         let score = 0;
         let isJumping = false;
         let isGameOver = false;
+        let isWatchingPub = false; // Sécurité pour bloquer le jeu pendant la vidéo
         let obstacleSpeed = 5;
         let animationFrameId;
 
@@ -144,7 +190,8 @@
         }
 
         function handleAction(event) {
-            // Sécurité : Si on clique sur le bouton de réanimation, on ignore cette action générale
+            // Sécurité : Si on regarde une pub ou clique sur le bouton, on ne saute pas
+            if (isWatchingPub) return;
             if (event && event.target && event.target.id === 'revive-btn') {
                 return;
             }
@@ -157,8 +204,8 @@
         }
 
         window.addEventListener("touchstart", function(event) {
-            // Ne bloque pas le touchstart s'il provient du bouton vert
             if (event.target && event.target.id === 'revive-btn') return;
+            if (isWatchingPub) return;
             
             event.preventDefault(); 
             handleAction(event);
@@ -178,7 +225,7 @@
         });
 
         function jump() {
-            if (isJumping) return;
+            if (isJumping || isGameOver) return;
             isJumping = true;
             skater.classList.add("jump");
 
@@ -189,7 +236,7 @@
         }
 
         function gameLoop() {
-            if (isGameOver) return;
+            if (isGameOver || isWatchingPub) return;
 
             let containerWidth = container.offsetWidth;
             let obstacleLeft = parseInt(window.getComputedStyle(obstacle).getPropertyValue("left"));
@@ -237,36 +284,20 @@
                 event.stopPropagation(); 
             }
             
-            if (typeof PokiSDK !== 'undefined') {
-                PokiSDK.commercialBreak().then(() => {
-                    reprendreLaPartie();
-                }).catch(() => {
-                    reprendreLaPartie();
-                });
-            } else {
-                reprendreLaPartie();
-            }
-        }
-
-        function reprendreLaPartie() {
-            isGameOver = false;
+            // On cache le texte Game Over temporairement
             gameOverText.style.display = "none";
-            let containerWidth = container.offsetWidth;
-            obstacle.style.left = containerWidth + "px"; // Repousse l'obstacle au début
-            gameLoop();
+            isWatchingPub = true;
+
+            // Déclenchement de la simulation vidéo locale
+            pubContainer.style.display = "flex";
+            pubVideo.currentTime = 0; // Remet la vidéo à zéro
+            
+            // Lancement de la vidéo avec gestion des restrictions de certains navigateurs
+            pubVideo.play().catch(error => {
+                console.log("Lecture auto bloquée, activation du son requis ou clic utilisateur nécessaire.", error);
+                // En cas de blocage strict du navigateur, on force quand même la suite
+                setTimeout(reprendreLaPartie, 3000);
+            });
         }
 
-        function resetGame() {
-            isGameOver = false;
-            score = 0;
-            obstacleSpeed = 5;
-            scoreDisplay.innerText = score;
-            gameOverText.style.display = "none";
-            obstacle.style.left = "100%";
-            gameLoop();
-        }
-
-        gameLoop();
-    </script>
-</body>
-</html>
+        // Événement automatique qui s'active quand ta vidéo se termine
