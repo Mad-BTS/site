@@ -135,16 +135,20 @@
         let obstacleSpeed = 5;
         let animationFrameId;
 
-        // Initialisation discrète du SDK de Poki au lancement
         if (typeof PokiSDK !== 'undefined') {
             PokiSDK.init().then(() => {
                 console.log("Poki SDK chargé avec succès !");
             }).catch(() => {
-                console.log("Mode test ou bloqueur de pub actif.");
+                console.log("Mode test actif.");
             });
         }
 
-        function handleAction() {
+        function handleAction(event) {
+            // Sécurité : Si on clique sur le bouton de réanimation, on ignore cette action générale
+            if (event && event.target && event.target.id === 'revive-btn') {
+                return;
+            }
+            
             if (isGameOver) {
                 resetGame();
             } else {
@@ -153,20 +157,23 @@
         }
 
         window.addEventListener("touchstart", function(event) {
+            // Ne bloque pas le touchstart s'il provient du bouton vert
+            if (event.target && event.target.id === 'revive-btn') return;
+            
             event.preventDefault(); 
-            handleAction();
+            handleAction(event);
         }, { passive: false });
 
         document.addEventListener("keydown", function(event) {
             if (event.code === "Space") {
                 event.preventDefault(); 
-                handleAction();
+                handleAction(event);
             }
         });
 
         window.addEventListener("mousedown", function(event) {
             if (event.pointerType !== 'touch') {
-                handleAction();
+                handleAction(event);
             }
         });
 
@@ -224,20 +231,19 @@
             gameOverText.style.display = "block";
         }
 
-        // Lancement de la publicité Poki au clic sur le bouton vert
         function regarderPubPourContinuer(event) {
-            event.stopPropagation(); 
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation(); 
+            }
             
             if (typeof PokiSDK !== 'undefined') {
-                // Déclenche une vraie pause publicitaire Poki
                 PokiSDK.commercialBreak().then(() => {
                     reprendreLaPartie();
                 }).catch(() => {
-                    // Sécurité : si la pub échoue à charger, on laisse quand même jouer
                     reprendreLaPartie();
                 });
             } else {
-                // Mode test local sur ton PC
                 reprendreLaPartie();
             }
         }
@@ -246,7 +252,7 @@
             isGameOver = false;
             gameOverText.style.display = "none";
             let containerWidth = container.offsetWidth;
-            obstacle.style.left = containerWidth + "px";
+            obstacle.style.left = containerWidth + "px"; // Repousse l'obstacle au début
             gameLoop();
         }
 
