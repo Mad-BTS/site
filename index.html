@@ -28,13 +28,8 @@
             background: #222;
             z-index: 10;
         }
-        h1 {
-            font-size: 1.4rem;
-        }
-        p {
-            font-size: 0.8rem;
-            color: #ccc;
-        }
+        h1 { font-size: 1.4rem; }
+        p { font-size: 0.8rem; color: #ccc; }
         .game-container {
             flex: 1;
             width: 100%;
@@ -46,44 +41,22 @@
             width: 100%;
             height: 100%;
         }
-
-        /* POPUP DE PUB */
         #game-over-screen {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.6);
             display: none;
-            justify-content: center;
-            align-items: center;
+            justify-content: center; align-items: center;
             z-index: 99999;
         }
         .modal-content {
-            background-color: #222222;
-            color: #ffffff;
-            padding: 25px;
-            border-radius: 15px;
-            text-align: center;
-            border: 3px solid #ff5722;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
-            width: 280px;
-        }
-        .modal-content h2 {
-            margin-bottom: 10px;
-            font-size: 22px;
+            background-color: #222222; color: #ffffff; padding: 25px;
+            border-radius: 15px; text-align: center; border: 3px solid #ff5722;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.6); width: 280px;
         }
         .modal-content button {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            font-size: 16px;
-            font-weight: bold;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
+            display: block; width: 100%; padding: 12px; margin: 10px 0;
+            font-size: 16px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;
         }
         #btn-revive { background-color: #4CAF50; color: white; }
         #btn-restart { background-color: #f44336; color: white; }
@@ -113,11 +86,10 @@
 const canvas = document.getElementById("jeuCanvas");
 const ctx = canvas.getContext("2d");
 
-// Taille par défaut pour éviter l'écran vide au démarrage
+// Forçage de dimensions fixes de secours immédiat
 canvas.width = window.innerWidth || 800;
-canvas.height = window.innerHeight - 80 ? window.innerHeight - 80 : 400;
+canvas.height = window.innerHeight > 150 ? window.innerHeight - 80 : 400;
 
-// Variables physiques globales
 let GROUND_Y = canvas.height - 120;
 const GRAVITY = 0.6;
 const JUMP_POWER = -12;
@@ -149,11 +121,12 @@ let score = 0;
 let gameOver = false;
 let scoreActuel = 0;
 
-// Configuration dynamique du canvas au redimensionnement
 function resizeCanvas() {
     canvas.width = window.innerWidth;
-    if (canvas.parentElement && canvas.parentElement.clientHeight) {
+    if (canvas.parentElement && canvas.parentElement.clientHeight > 0) {
         canvas.height = canvas.parentElement.clientHeight;
+    } else {
+        canvas.height = window.innerHeight - 80;
     }
     GROUND_Y = canvas.height - 120; 
     if (!skater.isJumping) {
@@ -163,7 +136,9 @@ function resizeCanvas() {
 }
 
 window.addEventListener('resize', resizeCanvas);
-setTimeout(resizeCanvas, 100);
+// Forcer le recalcul après le chargement complet du layout
+window.addEventListener('load', resizeCanvas);
+setTimeout(resizeCanvas, 200);
 
 function handleAction() {
     let ecranPub = document.getElementById("game-over-screen");
@@ -177,7 +152,6 @@ function handleAction() {
     }
 }
 
-// Contrôles
 document.addEventListener("keydown", function(e) {
     if (e.code === "Space") {
         e.preventDefault();
@@ -248,7 +222,6 @@ function declencherGameOver(scoreDuJoueur) {
     scoreActuel = scoreDuJoueur || 0;
     let ecran = document.getElementById("game-over-screen");
     let texteScore = document.getElementById("current-score");
-    
     if (texteScore) texteScore.innerText = scoreActuel;
     if (ecran) ecran.style.display = "flex";
 }
@@ -258,6 +231,11 @@ function demanderPubRevivre() {
     setTimeout(function() {
         accorderSecondeChance();
     }, 3000);
+}
+
+function accorderSechance() {
+    // Reste ici pour compatibilité au cas où
+    accorderSecondeChance();
 }
 
 function accorderSecondeChance() {
@@ -359,7 +337,8 @@ function loop() {
     }
 }
 
-// Lancement immédiat
+// Lancement direct sécurisé
+resizeCanvas();
 loop();
 </script>
 </body>
