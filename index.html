@@ -304,6 +304,43 @@ function loop() {
 // Lancement initial après calculs de taille
 resizeCanvas();
 loop();
+    // Variable obligatoire pour stocker la publicité AdMob
+if (typeof pubRecompensee === 'undefined') {
+    var pubRecompensee = null;
+}
+
+// Fonction qui se déclenche quand le joueur clique sur le bouton "Revivre"
+function demanderPubRevivre() {
+    if (typeof admob !== 'undefined' && pubRecompensee) {
+        pubRecompensee.show().then(() => {
+            accorderSecondeChance();
+        }).catch(() => {
+            accorderSecondeChance(); 
+        });
+    } else {
+        // Simulation de la publicité pendant 3 secondes pour vos tests
+        alert("Chargement de la publicité (Test)... Patientez 3 secondes 🎬");
+        
+        setTimeout(function() {
+            accorderSecondeChance();
+        }, 3000); 
+    }
+}
+
+// Fonction qui fait disparaître le menu et fait repartir votre skateur
+function accorderSecondeChance() {
+    let ecran = document.getElementById("game-over-screen");
+    if (ecran) ecran.style.setProperty('display', 'none', 'important');
+    
+    // Relance la boucle du jeu si elle était coupée
+    gameOver = false; 
+    if (typeof loop === 'function') {
+        requestAnimationFrame(loop);
+    }
+    
+    console.log("Le joueur a regardé la pub, le skateur repart !");
+}
+
 </script>
     <!-- Copiez TOUT ce bloc et collez-le juste avant </corps> -->
 <style>
