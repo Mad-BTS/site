@@ -46,6 +46,47 @@
             width: 100%;
             height: 100%;
         }
+
+        /* STYLE DE LA FENÊTRE DE PUBLICITÉ (Intégré proprement) */
+        #game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+        }
+        .modal-content {
+            background-color: #222222;
+            color: #ffffff;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            border: 3px solid #ff5722;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+            width: 280px;
+        }
+        .modal-content h2 {
+            margin-bottom: 10px;
+            font-size: 22px;
+        }
+        .modal-content button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        #btn-revive { background-color: #4CAF50; color: white; }
+        #btn-restart { background-color: #f44336; color: white; }
     </style>
 </head>
 <body>
@@ -59,6 +100,16 @@
         <canvas id="jeuCanvas"></canvas>
     </div>
 
+    <!-- Interface d'annonce connectée -->
+    <div id="game-over-screen">
+        <div class="modal-content">
+            <h2>🛹 CHUTE !</h2>
+            <p>Votre score actuel : <span id="current-score">0</span> points</p>
+            <button id="btn-revive" onclick="demanderPubRevivre()">🎬 Revivre (Regarder une pub)</button>
+            <button id="btn-restart" onclick="recommencerPartie()">❌ Abandonner</button>
+        </div>
+    </div>
+
 <script>
 const canvas = document.getElementById("jeuCanvas");
 const ctx = canvas.getContext("2d");
@@ -66,10 +117,8 @@ const ctx = canvas.getContext("2d");
 // Configuration dynamique du canvas
 function resizeCanvas() {
     canvas.width = window.innerWidth;
-    // On prend la hauteur restante de l'écran après le menu du haut
     canvas.height = canvas.parentElement.clientHeight;
     
-    // Recalculer le sol et la physique selon la taille réelle de l'écran
     GROUND_Y = canvas.height - 100; 
     if (!skater.isJumping) {
         skater.y = GROUND_Y;
@@ -107,13 +156,17 @@ let obstacle = {
 
 let score = 0;
 let gameOver = false;
+let scoreActuel = 0;
 
 // Initialisation de la taille de l'écran
 window.addEventListener('resize', resizeCanvas);
-// Un petit délai pour s'assurer que le mobile a fini de charger son interface
 setTimeout(resizeCanvas, 100);
 
 function handleAction() {
+    // Bloque l'action de saut si la fenêtre de pub est ouverte à l'écran
+    let ecranPub = document.getElementById("game-over-screen");
+    if (ecranPub && ecranPub.style.display === "flex") return;
+
     if (!skater.isJumping && !gameOver) {
         skater.vy = skater.jumpPower;
         skater.isJumping = true;
@@ -168,7 +221,7 @@ function update() {
     // Mouvement de l'obstacle
     obstacle.x -= obstacle.speed;
     if (obstacle.x < -obstacle.width) {
-        obstacle.x = canvas.width + Math.random() * 100; // Réapparaît juste après le bord droit de l'écran
+        obstacle.x = canvas.width + Math.random() * 100;
         score++;
         obstacle.speed += 0.3;
     }
@@ -188,18 +241,47 @@ function update() {
         obstacle.y + obstacle.height > skaterHitbox.y
     ) {
         gameOver = true;
-    }function declencherGameOver(scoreDuJoueur) {
+        declencherGameOver(score); // Ouvre proprement le menu publicitaire
+    }
+}
+
+// Affiche la pop-up de Game Over
+function declencherGameOver(scoreDuJoueur) {
     scoreActuel = scoreDuJoueur || 0;
-    
-    // Si l'élément existe dans la page, on met le score et on l'affiche
     let ecran = document.getElementById("game-over-screen");
     let texteScore = document.getElementById("current-score");
     
     if (texteScore) texteScore.innerText = scoreActuel;
-    if (ecran) ecran.style.setProperty('display', 'flex', 'important');
+    if (ecran) ecran.style.display = "flex";
 }
 
+// Simule le chargement AdMob
+function demanderPubRevivre() {
+    alert("🎬 Affichage de la publicité (Test)...\n\nVotre skateur repart dans 3 secondes !");
+    setTimeout(function() {
+        accorderSecondeChance();
+    }, 3000);
+}
 
+// Relance le skateur sur sa planche à l'endroit exact de sa chute
+function accorderSecondeChance() {
+    let ecran = document.getElementById("game-over-screen");
+    if (ecran) ecran.style.display = "none";
+    
+    gameOver = false;
+    skater.y = GROUND_Y;
+    skater.vy = 0;
+    skater.isJumping = false;
+    skater.angle = 0;
+    obstacle.x = canvas.width + 150; // Donne un peu d'espace de sécurité
+    
+    loop();
+}
+
+function recommencerPartie() {
+    let ecran = document.getElementById("game-over-screen");
+    if (ecran) ecran.style.display = "none";
+    resetGame();
 }
 
 function drawSkater() {
@@ -279,17 +361,8 @@ function draw() {
     ctx.shadowBlur = 0;
 
     if (gameOver) {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+        ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        ctx.fillStyle = "#fff";
-        ctx.textAlign = "center";
-        ctx.font = "bold 30px Arial";
-        ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 20);
-        
-        ctx.font = "16px Arial";
-        ctx.fillText("Touchez l'écran pour retenter !", canvas.width / 2, canvas.height / 2 + 30);
-        ctx.textAlign = "left";
     }
 }
 
@@ -299,172 +372,10 @@ function loop() {
     if (!gameOver) {
         requestAnimationFrame(loop);
     }
-}/* ==========================================
-   CODE DE LA FENÊTRE DE PUB (GAME OVER)
-   ========================================== */
-
-// 1. On injecte le design CSS et le bouton HTML magiquement
-document.write(`
-<style>
-#game-over-screen {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0, 0, 0, 0.75); display: none;
-    justify-content: center; align-items: center; z-index: 99999;
-    font-family: Arial, sans-serif;
-}
-.modal-content {
-    background-color: #222222; color: #ffffff; padding: 25px;
-    border-radius: 15px; text-align: center; border: 3px solid #ff5722;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.6); width: 280px;
-}
-.modal-content button {
-    display: block; width: 100%; padding: 12px; margin: 10px 0;
-    font-size: 16px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;
-}
-#btn-revive { background-color: #4CAF50; color: white; }
-#btn-restart { background-color: #f44336; color: white; }
-</style>
-
-<div id="game-over-screen">
-    <div class="modal-content">
-        <h2>🛹 CHUTE !</h2>
-        <p>Votre score actuel : <span id="current-score">0</span> points</p>
-        <button id="btn-revive" onclick="demanderPubRevivre()">🎬 Revivre (Regarder une pub)</button>
-        <button id="btn-restart" onclick="recommencerPartie()">❌ Abandonner</button>
-    </div>
-</div>
-`);
-
-// 2. Variables obligatoires
-if (typeof pubRecompensee === 'undefined') { var pubRecompensee = null; }
-let scoreActuel = 0;
-
-// 3. Fonction qui affiche l'écran quand le skateur tombe
-function declencherGameOver(scoreDuJoueur) {
-    scoreActuel = scoreDuJoueur || 0;
-    let ecran = document.getElementById("game-over-screen");
-    let texteScore = document.getElementById("current-score");
-    if (texteScore) texteScore.innerText = scoreActuel;
-    if (ecran) ecran.style.setProperty('display', 'flex', 'important');
 }
 
-
-
-/* ==========================================
-   CODE UNIVERSEL ET INDÉPENDANT POUR LA PUB
-   ========================================== */
-
-// 1. Injection automatique du visuel dans la page
-document.write(`
-<style>
-#game-over-screen {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0, 0, 0, 0.85); display: none;
-    justify-content: center; align-items: center; z-index: 999999;
-    font-family: Arial, sans-serif;
-}
-.modal-content {
-    background-color: #1a1a1a; color: #ffffff; padding: 30px;
-    border-radius: 15px; text-align: center; border: 3px solid #ff5722;
-    box-shadow: 0 0 25px rgba(255, 87, 34, 0.4); width: 280px;
-}
-.modal-content h2 { margin-top: 0; color: #ff5722; font-size: 24px; }
-.modal-content p { font-size: 18px; margin: 15px 0; }
-.modal-content button {
-    display: block; width: 100%; padding: 14px; margin: 12px 0;
-    font-size: 16px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;
-    transition: background 0.2s;
-}
-#btn-revive { background-color: #4CAF50; color: white; }
-#btn-revive:hover { background-color: #45a049; }
-#btn-restart { background-color: #f44336; color: white; }
-#btn-restart:hover { background-color: #da190b; }
-</style>
-
-<div id="game-over-screen">
-    <div class="modal-content">
-        <h2>🛹 CHUTE !</h2>
-        <p>Partie terminée</p>
-        <button id="btn-revive" onclick="demanderPubRevivre()">🎬 Revivre (Regarder une pub)</button>
-        <button id="btn-restart" onclick="recommencerPartie()">❌ Abandonner</button>
-    </div>
-</div>
-`);
-
-// 2. Fonction magique forcée (indépendante du reste du jeu)
-window.declencherGameOver = function() {
-    let ecran = document.getElementById("game-over-screen");
-    if (ecran) {
-        ecran.style.setProperty('display', 'flex', 'important');
-    }
-};
-
-function demanderPubRevivre() {
-    alert("🎬 Affichage de la publicité de test...\n\nLe jeu va redémarrer dans 3 secondes.");
-    setTimeout(function() {
-        accorderSecondeChance();
-    }, 3000); 
-}
-
-function accorderSecondeChance() {
-    let ecran = document.getElementById("game-over-screen");
-    if (ecran) ecran.style.setProperty('display', 'none', 'important');
-    location.reload(); // Recharge proprement le jeu pour recommencer
-}
-
-function recommencerPartie() {
-    location.reload();
-}
-
+// Démarrage officiel du jeu
+loop();
 </script>
-   
-<style>
-#game-over-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.75);
-    display: none !important; /* Force le menu à rester caché au début */
-    justify-content: center;
-    align-items: center;
-    z-index: 99999;
-    font-family: Arial, sans-serif;
-}
-.modal-content {
-    background-color: #222222;
-    color: #ffffff;
-    padding: 25px;
-    border-radius: 15px;
-    text-align: center;
-    border: 3px solid #ff5722;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
-    width: 280px;
-}
-.modal-content button {
-    display: block;
-    width: 100%;
-    padding: 12px;
-    margin: 10px 0;
-    font-size: 16px;
-    font-weight: bold;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-}
-#btn-revive { background-color: #4CAF50; color: white; }
-#btn-restart { background-color: #f44336; color: white; }
-</style>
-
-<div id="game-over-screen">
-    <div class="modal-content">
-        <h2>🛹 CHUTE !</h2>
-        <p>Votre score actuel : <span id="current-score">0</span> points</p>
-        <button id="btn-revive" onclick="demanderPubRevivre()">🎬 Revivre (Regarder une pub)</button>
-        <button id="btn-restart" onclick="recommencerPartie()">❌ Abandonner</button>
-    </div>
-</div>
-
 </body>
 </html>
