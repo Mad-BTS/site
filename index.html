@@ -2,324 +2,319 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Skate Runner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SkateRoll - Version Mobile</title>
     <style>
-        body {
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
             margin: 0;
             padding: 0;
-            background: #222;
+        }
+        body {
+            background-color: #1e272e;
+            font-family: 'Segoe UI', Arial, sans-serif;
             overflow: hidden;
-            font-family: Arial, sans-serif;
-            user-select: none;
-        }
-        canvas {
-            display: block;
-            margin: 0 auto;
-            background: #87CEEB;
-        }
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
+            height: 100vh;
+            width: 100vw;
         }
-        .btn {
-            padding: 15px 30px;
-            font-size: 20px;
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(#00d2d3, #1dd1a1);
+            position: relative;
+            overflow: hidden;
+        }
+        /* En-tête de l'écran de jeu */
+        #game-header {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 10;
+        }
+        #logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.25);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
+        }
+        /* Design du Logo de Skate Personnalisé */
+        #custom-logo {
+            width: 32px;
+            height: 12px;
+            background: #ff9f43;
+            border-radius: 6px;
+            position: relative;
+            border: 2px solid #2f3542;
+        }
+        #custom-logo::before, #custom-logo::after {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #2f3542;
+            border-radius: 50%;
+            bottom: -5px;
+        }
+        #custom-logo::before { left: 4px; }
+        #custom-logo::after { right: 4px; }
+
+        #game-title {
+            color: white;
+            font-weight: 800;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        #badge-gratuit {
+            background-color: #ff4757;
+            color: white;
+            font-size: 12px;
             font-weight: bold;
-            background: #ffcc00;
-            border: 3px solid #000;
-            border-radius: 10px;
-            cursor: pointer;
-            pointer-events: auto;
+            padding: 6px 14px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+        }
+        #score-display {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            font-size: 26px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        #ground {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 20vh;
+            background-color: #3d3d3d;
+            border-top: 8px solid #57606f;
+        }
+        #skater {
+            width: 60px;
+            height: 70px;
+            position: absolute;
+            bottom: 20vh;
+            left: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 45px;
+            z-index: 5;
+        }
+        .jump {
+            animation: jumpRollAnimation 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        @keyframes jumpRollAnimation {
+            0% { bottom: 20vh; transform: rotate(0deg); }
+            50% { bottom: calc(20vh + 160px); transform: rotate(180deg); }
+            100% { bottom: 20vh; transform: rotate(360deg); }
+        }
+        #obstacle {
+            width: 35px;
+            height: 35px;
+            background-color: #ee5253;
+            position: absolute;
+            bottom: calc(20vh + 55px);
+            left: 100vw;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #ff4d4d;
+        }
+        /* Écran de Fin de Partie */
+        #game-over-text {
             display: none;
-            box-shadow: 0 5px 0 #b38f00;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(255, 255, 255, 0.98);
+            padding: 30px 25px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            z-index: 20;
+            width: 85%;
+            max-width: 340px;
         }
-        .btn:active {
-            transform: translateY(3px);
-            box-shadow: 0 2px 0 #b38f00;
+        #game-over-text h2 {
+            color: #ff4757;
+            font-size: 26px;
+            margin-bottom: 10px;
+            font-weight: 800;
         }
-        #ad-screen {
+        #revive-btn {
+            background: linear-gradient(135deg, #2ed573, #1dd1a1);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+            box-shadow: 0px 6px 15px rgba(46, 213, 115, 0.4);
+            text-transform: uppercase;
+        }
+        /* ÉCRAN PUBLICITAIRE EN PHOTO AVEC DEGRADÉ ET METZ VOS TEXTES */
+        #pub-container {
+            display: none;
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            color: white;
-            display: none;
-            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #2f3542, #747d8c);
+            z-index: 30;
             justify-content: center;
             align-items: center;
-            font-size: 30px;
+            flex-direction: column;
+            color: white;
             text-align: center;
+            padding: 20px;
+        }
+        #pub-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px 30px;
+            border-radius: 28px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            max-width: 350px;
+            width: 90%;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        }
+        /* Logo dans l'affiche de publicité */
+        #pub-logo {
+            width: 70px;
+            height: 25px;
+            background: #ff9f43;
+            border-radius: 10px;
+            margin: 0 auto 25px auto;
+            position: relative;
+            border: 3px solid white;
+        }
+        #pub-logo::before, #pub-logo::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            bottom: -10px;
+        }
+        #pub-logo::before { left: 8px; }
+        #pub-logo::after { right: 8px; }
+
+        #pub-title {
+            font-size: 32px;
+            font-weight: 900;
+            color: #1dd1a1;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            line-height: 1.2;
+        }
+        #pub-text {
+            font-size: 18px;
+            color: #f1f2f6;
+            margin-bottom: 35px;
+            line-height: 1.4;
+            font-weight: 500;
+        }
+        #pub-timer-btn {
+            background: #ff4757;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            padding: 16px 20px;
+            border-radius: 30px;
+            border: none;
+            width: 100%;
+            box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        #tap-instruction {
+            position: absolute;
+            bottom: 5vh;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+            pointer-events: none;
+            font-weight: 500;
         }
     </style>
 </head>
 <body>
 
-    <canvas id="gameCanvas"></canvas>
-    
-    <div id="ui-layer">
-        <button id="adBtn" class="btn">Regarder une pub pour continuer</button>
-    </div>
+    <div id="game-container">
+        <!-- En-tête -->
+        <div id="game-header">
+            <div id="logo-container">
+                <div id="custom-logo"></div>
+                <span id="game-title">SkateRoll</span>
+            </div>
+            <div id="badge-gratuit">Gratuit</div>
+        </div>
 
-    <div id="ad-screen">
-        <p>🎞️ Publicité en cours...</p>
-        <p id="ad-timer">Attente Poki Dev : 3s</p>
-    </div>
-
-<script>
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
-
-// Adaptation taille écran
-canvas.width = window.innerWidth > 800 ? 800 : window.innerWidth;
-canvas.height = 400;
-
-// Variables de jeu
-let score = 0;
-let gameOver = false;
-let isAdState = false;
-
-// Variables physiques
-const gravity = 0.6;
-const groundY = canvas.height - 60;
-
-// Objet Skateur
-const player = {
-    x: 80,
-    y: groundY - 50,
-    width: 40,
-    height: 60,
-    vy: 0,
-    isJumping: false,
-    isRolling: false,
-    rollTimer: 0,
-    
-    jump() {
-        if (!this.isJumping && !this.isRolling) {
-            this.vy = -13;
-            this.isJumping = true;
-        }
-    },
-    
-    roll() {
-        if (!this.isJumping && !this.isRolling) {
-            this.isRolling = true;
-            this.rollTimer = 25; // Durée de la roulade en frames
-            this.height = 30;    // Devient plus petit
-            this.y = groundY - 30;
-        }
-    },
-
-    update() {
-        // Gravité et saut
-        this.vy += gravity;
-        this.y += this.vy;
-
-        if (this.y > groundY - this.height) {
-            this.y = groundY - this.height;
-            this.vy = 0;
-            this.isJumping = false;
-        }
-
-        // Gestion de la roulade
-        if (this.isRolling) {
-            this.rollTimer--;
-            if (this.rollTimer <= 0) {
-                this.isRolling = false;
-                this.height = 60;
-                this.y = groundY - this.height;
-            }
-        }
-    },
-
-    draw() {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-
-        if (this.isRolling) {
-            // Dessin Roulade (Balle / Roulis)
-            ctx.fillStyle = "#ff5722";
-            ctx.beginPath();
-            ctx.arc(this.width/2, this.height/2, 20, 0, Math.PI * 2);
-            ctx.fill();
-        } else {
-            // Corps du skateur
-            ctx.fillStyle = "#ff5722";
-            ctx.fillRect(0, 0, this.width, this.height);
-
-            // Casquette (Visière à droite)
-            ctx.fillStyle = "#000";
-            ctx.fillRect(5, -10, 30, 10); // Calotte
-            ctx.fillRect(20, -7, 25, 4);  // Visière
-            
-            // Yeux
-            ctx.fillStyle = "#fff";
-            ctx.fillRect(25, 5, 8, 8);
-            ctx.fillStyle = "#000";
-            ctx.fillRect(29, 5, 4, 4);
-
-            // Planche de skate
-            ctx.fillStyle = "#795548";
-            ctx.fillRect(-5, this.height, this.width + 10, 6);
-            ctx.fillStyle = "#000";
-            ctx.beginPath();
-            ctx.arc(2, this.height + 9, 4, 0, Math.PI*2);
-            ctx.arc(this.width - 2, this.height + 9, 4, 0, Math.PI*2);
-            ctx.fill();
-        }
-        ctx.restore();
-    }
-};
-
-// Gestion des obstacles
-let obstacles = [];
-let spawnTimer = 0;
-
-function spawnObstacle() {
-    const type = Math.random() > 0.5 ? "high" : "low";
-    if (type === "high") {
-        // Obstacle haut (nécessite roulade)
-        obstacles.push({
-            x: canvas.width,
-            y: groundY - 70,
-            width: 30,
-            height: 35,
-            color: "#e91e63",
-            type: "high"
-        });
-    } else {
-        // Obstacle bas (nécessite saut)
-        obstacles.push({
-            x: canvas.width,
-            y: groundY - 35,
-            width: 30,
-            height: 35,
-            color: "#9c27b0",
-            type: "low"
-        });
-    }
-}
-
-// Contrôles Clavier
-window.addEventListener("keydown", (e) => {
-    if (e.code === "Space" || e.code === "ArrowUp") {
-        e.preventDefault();
-        player.jump();
-    }
-    if (e.code === "ArrowDown" || e.code === "KeyS") {
-        e.preventDefault();
-        player.roll();
-    }
-});
-
-// Contrôles Tactiles (Mobiles)
-window.addEventListener("touchstart", (e) => {
-    const touchY = e.touches[0].clientY;
-    // Si clique sur la moitié haute de l'écran = Saut, moitié basse = Roulade
-    if (touchY < window.innerHeight / 2) {
-        player.jump();
-    } else {
-        player.roll();
-    }
-});
-
-// Bouton Pub & Continuer
-const adBtn = document.getElementById("adBtn");
-const adScreen = document.getElementById("ad-screen");
-const adTimerText = document.getElementById("ad-timer");
-
-adBtn.addEventListener("click", () => {
-    adBtn.style.display = "none";
-    adScreen.style.display = "flex";
-    isAdState = true;
-    
-    let timeLeft = 3; // Pause de 3 secondes
-    adTimerText.innerText = `Attente Poki Dev : ${timeLeft}s`;
-
-    let interval = setInterval(() => {
-        timeLeft--;
-        adTimerText.innerText = `Attente Poki Dev : ${timeLeft}s`;
+        <div id="score-display">SCORE : <span id="score">0</span></div>
         
-        if (timeLeft <= 0) {
-            clearInterval(interval);
-            adScreen.style.display = "none";
+        <div id="skater">🏃</div>
+        <div id="obstacle"></div>
+        <div id="ground"></div>
+        
+        <div id="tap-instruction">Touchez l'écran pour faire une roulade</div>
+        <div id="game-over-text"></div>
+
+        <!-- AFFICHE DE PUBLICITÉ COMPLÈTE (FINIE LA PAGE NOIRE) -->
+        <div id="pub-container">
+            <div id="pub-card">
+                <div id="pub-logo"></div>
+                <h1 id="pub-title">100% GRATUIT</h1>
+                <p id="pub-text">100% gratuit pour tous les joueurs !</p>
+                <button id="pub-timer-btn">Annonce (<span id="timer-count">5</span>s)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById("game-container");
+        const skater = document.getElementById("skater");
+        const obstacle = document.getElementById("obstacle");
+        const scoreDisplay = document.getElementById("score");
+        const gameOverText = document.getElementById("game-over-text");
+        
+        const pubContainer = document.getElementById("pub-container");
+        const pubTimerBtn = document.getElementById("pub-timer-btn");
+        const timerCount = document.getElementById("timer-count");
+
+        let score = 0;
+        let isJumping = false;
+        let isGameOver = false;
+        let isWatchingPub = false;
+        let obstacleVitesse = 7;
+        let animationFrameId;
+
+        function handleAction(event) {
+            if (isWatchingPub) return;
+            if (event && event.target && (event.target.id === 'revive-btn' || event.target.id === 'pub-timer-btn')) return;
             
-            // Relancer le jeu SANS reset le score
-            gameOver = false;
-            isAdState = false;
-            obstacles = []; // Vide les obstacles à l'écran pour éviter de mourir direct
-            loop();
-        }
-    }, 1000);
-});
-
-// Boucle principale du jeu
-function loop() {
-    if (gameOver || isAdState) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Dessin du sol
-    ctx.fillStyle = "#333";
-    ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
-
-    // Mise à jour du joueur
-    player.update();
-    player.draw();
-
-    // Gestion des obstacles
-    spawnTimer++;
-    if (spawnTimer > 90) {
-        spawnObstacle();
-        spawnTimer = 0;
-    }
-
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-        let obs = obstacles[i];
-        obs.x -= 5; // Vitesse de défilement
-
-        // Dessin obstacle
-        ctx.fillStyle = obs.color;
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-
-        // Détection des collisions (AABB)
-        if (
-            player.x < obs.x + obs.width &&
-            player.x + player.width > obs.x &&
-            player.y < obs.y + obs.height &&
-            player.y + player.height > obs.y
-        ) {
-            gameOver = true;
-            adBtn.style.display = "block"; // Affiche le bouton pub
-        }
-
-        // Supprimer obstacles hors écran
-        if (obs.x + obs.width < 0) {
-            obstacles.splice(i, 1);
-            score += 10;
-        }
-    }
-
-    // Affichage Score
-    ctx.fillStyle = "#000";
-    ctx.font = "24px Arial";
-    ctx.fillText(`Score: ${score}`, 20, 40);
-
-    requestAnimationFrame(loop);
-}
-
-// Lancement
-loop();
-</script>
-</body>
-</html>
+            if (isGameOver) {
