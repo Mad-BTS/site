@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Mad-ME-BTS-Prog - Skate Jump Game</title>
-    <!-- SCRIPT OFFICIEL POKI (Prêt pour leur validation) -->
-    <script src="https://poki.com"></script>
     <style>
         * {
             margin: 0;
@@ -137,6 +135,7 @@
             box-shadow: 0 2px #b87500;
         }
 
+        /* --- ÉCRAN DE LA PUB --- */
         #simulation-pub {
             display: none; 
             position: absolute;
@@ -227,10 +226,10 @@
         </div>
         
         <div id="simulation-pub">
-            <div class="badge-gratuit">100% GRATUIT</div>
+            <div class="badge-gratuit">Publicité</div>
             <div id="logo-simu"></div>
             <h2 style="color: #ffffff; font-size: 22px; font-weight: 900; text-transform: uppercase; margin-bottom: 2px;">Mad-ME-BTS-Prog</h2>
-            <p style="font-size: 12px; color: #dcdde1; margin-bottom: 5px;">Skate Jump Game</p>
+            <p id="statut-pub" style="font-size: 12px; color: #dcdde1; margin-bottom: 5px;">Chargement de la vidéo...</p>
             <p id="decompte" style="font-size: 32px; font-weight: 900; color: #ffa502;">5s</p>
             <div class="barre-chargement-conteneur">
                 <div class="barre-chargement-progression" id="barre-prog"></div>
@@ -239,6 +238,13 @@
     </div>
 
     <script>
+        // ==============================================================
+        // CONFIGURATION GOOGLE ADMOB (Remplace les XXX par tes vrais codes)
+        // ==============================================================
+        const ADMOB_APP_ID = "ca-app-pub-XXX~XXX"; 
+        const ADMOB_REWARDED_ID = "ca-app-pub-XXX/XXX"; 
+        // ==============================================================
+
         const container = document.getElementById("game-container");
         const skater = document.getElementById("skater");
         const obstacle = document.getElementById("obstacle");
@@ -247,6 +253,7 @@
         const simuPub = document.getElementById("simulation-pub");
         const decompteDisplay = document.getElementById("decompte");
         const barreProg = document.getElementById("barre-prog");
+        const statutPub = document.getElementById("statut-pub");
 
         let score = 0;
         let isJumping = false;
@@ -255,11 +262,6 @@
         let obstacleSpeed = 6;
         let obstacleLeft = 100;
         let animationFrameId;
-
-        // INITIALISATION DU DEVELOPPEUR POKI
-        if (typeof PokiSDK !== 'undefined') {
-            PokiSDK.init().then(() => { PokiSDK.gameLoadingStart(); PokiSDK.gameLoadingFinished(); }).catch(() => {});
-        }
 
         function handleAction(event) {
             if (isWatchingPub || isGameOver) return;
@@ -291,28 +293,27 @@
             if (isJumping || isWatchingPub || isGameOver) return;
             isJumping = true;
             skater.classList.add("jump");
-            setTimeout(() => { skater.classList.remove("jump"); isJumping = false; }, 500); 
+            setTimeout(() => {
+                skater.classList.remove("jump");
+                isJumping = false;
+            }, 500); 
         }
 
         function gameLoop() {
             if (isGameOver || isWatchingPub) return;
+
             obstacleLeft -= (obstacleSpeed / container.clientWidth) * 100;
+            
             if (obstacleLeft <= -5) {
                 obstacleLeft = 100;
                 score++;
                 scoreDisplay.textContent = score;
                 if (obstacleSpeed < 14) obstacleSpeed += 0.2;
             }
+            
             obstacle.style.left = obstacleLeft + "%";
 
             let skaterRect = skater.getBoundingClientRect();
             let obstacleRect = obstacle.getBoundingClientRect();
 
-            if (skaterRect.right > obstacleRect.left && skaterRect.left < obstacleRect.right && skaterRect.bottom > obstacleRect.top) {
-                endGame();
-                return;
-            }
-            animationFrameId = requestAnimationFrame(gameLoop);
-        }
-
-        function endGame() {
+            if (
