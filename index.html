@@ -1,144 +1,295 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jeu de Skater</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            height: 300px;
+            background: linear-gradient(#87CEEB, #E0F6FF);
+            border-bottom: 15px solid #333;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0px 10px 20px rgba(0,0,0,0.2);
+        }
+        #skater {
+            width: 50px;
+            height: 60px;
+            background-color: #ff4757;
+            position: absolute;
+            bottom: 0;
+            left: 50px;
+            border-radius: 8px;
+            transition: bottom 0.1s linear;
+        }
+        .jump {
+            animation: jumpAnimation 0.5s ease-out;
+        }
+        @keyframes jumpAnimation {
+            0% { bottom: 0; }
+            50% { bottom: 120px; }
+            100% { bottom: 0; }
+        }
+        #obstacle {
+            width: 25px;
+            height: 40px;
+            background-color: #2f3542;
+            position: absolute;
+            bottom: 0;
+            left: 600px;
+            border-radius: 4px;
+        }
+        #score-display {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            z-index: 10;
+        }
+        #game-over-text {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: #ff4757;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 20;
+            width: 80%;
+            max-width: 400px;
+        }
+        #pub-container {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 30;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        #pub-video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        #pub-timer {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
 
-il y a 6 heures
+    <div id="game-container">
+        <div id="score-display">Score : <span id="score">0</span></div>
+        <div id="skater"></div>
+        <div id="obstacle"></div>
+        
+        <div id="game-over-text"></div>
 
-Intégrer une fonctionnalité de simulation publicitaire dans le jeu
-            // Sécurité : Si on regarde une pub ou clique sur le bouton, on ne saute pas
-            si (isWatchingPub) retourner;
-il y a 9 heures
+        <!-- Zone Publicité (Simulation) -->
+        <div id="pub-container">
+            <div id="pub-timer">Publicité : <span id="timer-count">3</span>s</div>
+            <!-- Remplacez src par le lien d'une vraie vidéo si besoin -->
+            <video id="pub-video" src="https://w3schools.com" muted playsinline></video>
+        </div>
+    </div>
 
-Ajouter des fichiers par téléchargement
-            si (événement && événement.cible && événement.cible.id === 'revive-btn') {
-                retour;
+    <script>
+        const container = document.getElementById("game-container");
+        const skater = document.getElementById("skater");
+        const obstacle = document.getElementById("obstacle");
+        const scoreDisplay = document.getElementById("score");
+        const gameOverText = document.getElementById("game-over-text");
+        
+        const pubContainer = document.getElementById("pub-container");
+        const pubVideo = document.getElementById("pub-video");
+        const timerCount = document.getElementById("timer-count");
+
+        let score = 0;
+        let isJumping = false;
+        let isGameOver = false;
+        let isWatchingPub = false;
+        let obstacleVitesse = 6;
+        let animationFrameId;
+
+        // Gestion des interactions tactiles et clics globaux
+        function handleAction(event) {
+            if (isWatchingPub) return;
+
+            if (event && event.target && event.target.id === 'revive-btn') {
+                return;
             }
             
-            si (isGameOver) {
-                réinitialiser le jeu();
-            } autre {
-                saut();
+            if (isGameOver) {
+                resetGame();
+            } else {
+                jump();
             }
         }
+
         window.addEventListener("touchstart", function(event) {
-            si (event.target && event.target.id === 'revive-btn') retourner;
-il y a 6 heures
+            if (event.target && event.target.id === 'revive-btn') return;
+            event.preventDefault();
+            handleAction(event);
+        }, { passive: false });
 
-Intégrer une fonctionnalité de simulation publicitaire dans le jeu
-            si (isWatchingPub) retourner;
-il y a 9 heures
-
-Ajouter des fichiers par téléchargement
-            
-            événement.prévenirDefault();
-            gérerAction(événement);
-        }, { passif: faux });
         document.addEventListener("keydown", function(event) {
-            si (event.code === "Espace") {
-                événement.prévenirDefault();
-                gérerAction(événement);
+            if (event.code === "Space") {
+                event.preventDefault();
+                handleAction(event);
             }
         });
-        fenêtre.addEventListener("mousedown", function(event) {
-            si (event.pointerType !== 'touch') {
-                gérerAction(événement);
+
+        window.addEventListener("mousedown", function(event) {
+            if (event.pointerType !== 'touch') {
+                handleAction(event);
             }
         });
-        fonction jump() {
-il y a 6 heures
 
-Intégrer une fonctionnalité de simulation publicitaire dans le jeu
-            si (isJumping || isGameOver) retourner;
-il y a 9 heures
-
-Ajouter des fichiers par téléchargement
-            isJumping = vrai ;
-            skater.classList.add("saut");
+        function jump() {
+            if (isJumping || isGameOver) return;
+            isJumping = true;
+            skater.classList.add("jump");
             setTimeout(() => {
                 skater.classList.remove("jump");
-                isJumping = faux ;
+                isJumping = false;
             }, 500);
         }
-        fonction GameLoop() {
-il y a 6 heures
 
-Intégrer une fonctionnalité de simulation publicitaire dans le jeu
-            si (isGameOver || isWatchingPub) retourner;
-il y a 9 heures
-
-Ajouter des fichiers par téléchargement
-            soit containerWidth = container.offsetWidth;
+        function gameLoop() {
+            if (isGameOver || isWatchingPub) return;
+            let containerWidth = container.offsetWidth;
             let obstacleLeft = parseInt(window.getComputedStyle(obstacle).getPropertyValue("left"));
             
-            si (obstacleGauche < -25) {
-                obstacleGauche = largeurDuConteneur;
+            if (obstacleLeft < -25) {
+                obstacleLeft = containerWidth;
                 score++;
                 scoreDisplay.innerText = score;
                 
-                si (score % 5 === 0) {
+                if (score % 5 === 0) {
                     obstacleVitesse += 1;
                 }
             }
             
-            obstacle.style.gauche = (obstacleGauche - obstacleVitesse) + "px";
+            obstacle.style.left = (obstacleLeft - obstacleVitesse) + "px";
             let skaterBottom = parseInt(window.getComputedStyle(skater).getPropertyValue("bottom"));
             
-            si (obstacleGauche > 50 && obstacleGauche < 90 && patineurBas < 40) {
-                fin de partie();
-                retour;
+            if (obstacleLeft > 50 && obstacleLeft < 90 && skaterBottom < 40) {
+                endGame();
+                return;
             }
             animationFrameId = requestAnimationFrame(gameLoop);
         }
-        fonction endGame() {
-            isGameOver = vrai ;
-            annulerAnimationFrame(animationFrameId);
+
+        function endGame() {
+            isGameOver = true;
+            cancelAnimationFrame(animationFrameId);
             
             gameOverText.innerHTML = `
                 FIN DE LA PARTIE<br>
-                <span style="font-size: 16px; color: #333; display:block; margin-bottom:10px;">Score de Ton : ${score}</span>
+                <span style="font-size: 16px; color: #333; display:block; margin-bottom:10px;">Votre Score : ${score}</span>
                 <button id="revive-btn" onclick="regarderPubPourContinuer(event)" style="background-color: #2ed573; color: white; font-size: 16px; font-weight: bold; padding: 10px 20px; border: none; border-radius: 25px; cursor: pointer; box-shadow: 0px 4px 6px rgba(0,0,0,0.1);">
                     🎬 Continuer le score (Regarder la pub)
                 </button>
-                <br><span style="font-size: 14px; color: #666; display:block; margin-top:10px;">Ou touchez l'écran ailleurs pour recommencer à 0</span>
+                <br><span style="font-size: 14px; color: #666; display:block; margin-top:10px;">Ou cliquez ailleurs pour recommencer</span>
             `;
             gameOverText.style.display = "block";
         }
-        fonction regarderPubPourContinuer(événement) {
-            si (événement) {
-                événement.prévenirDefault();
-                événement.stopPropagation();
+
+        function regarderPubPourContinuer(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
             }
             
-il y a 6 heures
-
-Intégrer une fonctionnalité de simulation publicitaire dans le jeu
-            // On cache le texte Game Over temporairement
-il y a 9 heures
-
-Ajouter des fichiers par téléchargement
             gameOverText.style.display = "none";
-il y a 6 heures
-
-Intégrer une fonctionnalité de simulation publicitaire dans le jeu
-            estRegardePub = vrai;
-il y a 9 heures
-
-Ajouter des fichiers par téléchargement
-il y a 6 heures
-
-Intégrer une fonctionnalité de simulation publicitaire dans le jeu
-            // Déclenchement de la simulation vidéo locale
+            isWatchingPub = true;
             pubContainer.style.display = "flex";
-            pubVideo.currentTime = 0 ; // Remettre la vidéo à zéro
             
-            // Lancement de la vidéo avec gestion des restrictions de certains navigateurs
+            // Configuration du compte à rebours visuel (ex: 3 secondes)
+            let timeLeft = 3;
+            timerCount.innerText = timeLeft;
+            
+            pubVideo.currentTime = 0;
             pubVideo.play().catch(error => {
-                console.log("Lecture auto bloquée, activation du son requis ou clic utilisateur nécessaire.", erreur);
-                // En cas de blocage strict du navigateur, on force quand même la suite
-                setTimeout(reprendreLaPartie, 3000);
+                console.log("Lecture auto bloquée, passage direct au timer.", error);
             });
-il y a 9 heures
 
-Ajouter des fichiers par téléchargement
+            let pubInterval = setInterval(() => {
+                timeLeft--;
+                timerCount.innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(pubInterval);
+                    reprendreLaPartie();
+                }
+            }, 1000);
         }
-il y a 6 heures
 
-Intégrer une fonctionnalité de simulation publicitaire dans le jeu
-        // Événement automatique qui s'active quand ta vidéo se termine
+        function reprendreLaPartie() {
+            pubVideo.pause();
+            pubContainer.style.display = "none";
+            isWatchingPub = false;
+            isGameOver = false;
+            
+            // On replace l'obstacle au début pour laisser le temps au joueur de réagir
+            obstacle.style.left = container.offsetWidth + "px";
+            
+            // Relance de la boucle
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function resetGame() {
+            score = 0;
+            obstacleVitesse = 6;
+            scoreDisplay.innerText = score;
+            isGameOver = false;
+            isWatchingPub = false;
+            gameOverText.style.display = "none";
+            obstacle.style.left = container.offsetWidth + "px";
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // Lancement initial du jeu
+        animationFrameId = requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
