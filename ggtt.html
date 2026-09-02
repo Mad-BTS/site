@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Skate Jump Game - Mobile Tactile</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            /* Supprime l'effet de flash bleu au clic sur mobile */
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            background-color: #f7f7f7;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 800px;
+            height: 250px;
+            border-bottom: 5px solid #333;
+            position: relative;
+            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        /* Le Skateur */
+        #skater {
+            width: 40px;
+            height: 60px;
+            position: absolute;
+            bottom: 0;
+            left: 50px;
+            background-color: #ff4757;
+            border-radius: 5px;
+        }
+
+        /* La planche de skate */
+        #skater::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: -5px;
+            width: 50px;
+            height: 8px;
+            background-color: #2ed573;
+            border-radius: 4px;
+        }
+
+        /* L'obstacle (Cône) */
+        #obstacle {
+            width: 25px;
+            height: 40px;
+            background-color: #ffa502;
+            position: absolute;
+            bottom: 0;
+            left: 100%;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
+
+        /* Animation de la Roulade Arrière (Backflip) */
+        .jump {
+            animation: jumpAnimation 0.5s linear;
+        }
+
+        @keyframes jumpAnimation {
+            0% { 
+                bottom: 0; 
+                transform: rotate(0deg); 
+            }
+            50% { 
+                bottom: 120px; 
+                transform: rotate(-180deg); 
+            }
+            100% { 
+                bottom: 0; 
+                transform: rotate(-360deg); 
+            }
+        }
+
+        #score-board {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        #game-over-text {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 26px;
+            font-weight: bold;
+            color: #ff4757;
+            text-align: center;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="score-board">Score : <span id="score">0</span></div>
+    
+    <div id="game-container">
+        <div id="skater"></div>
+        <div id="obstacle"></div>
+        <div id="game-over-text">GAME OVER<br><span style="font-size: 16px; color: #333;">Touche l'écran ou Espace pour rejouer</span></div>
+    </div>
+
+    <script>
+        const container = document.getElementById("game-container");
+        const skater = document.getElementById("skater");
+        const obstacle = document.getElementById("obstacle");
+        const scoreDisplay = document.getElementById("score");
+        const gameOverText = document.getElementById("game-over-text");
+
+        let score = 0;
+        let isJumping = false;
+        let isGameOver = false;
+        let obstacleSpeed = 5;
+        let animationFrameId;
+
+        // Fonction principale déclenchée par le tactile ou le clavier
+        function handleAction() {
+            if (isGameOver) {
+                resetGame();
+            } else {
+                jump();
+            }
+        }
+
+        // 1. TACTILE (Pour tous les smartphones et tablettes)
+        // On écoute sur 'window' pour que le joueur puisse taper n'importe où sur l'écran
+        window.addEventListener("touchstart", function(event) {
+            event.preventDefault(); // Bloque le zoom automatique du téléphone
+            handleAction();
+        }, { passive: false });
+
+        // 2. CLAVIER (Pour la barre d'espace sur PC)
+        document.addEventListener("keydown", function(event) {
+            if (event.code === "Space") {
+                event.preventDefault(); 
+                handleAction();
+            }
+        });
+
+        // 3. CLIC SOURIS (Alternative pratique sur PC)
+        window.addEventListener("mousedown", function(event) {
+            // Évite le double déclenchement si on est sur mobile (car touchstart simule parfois un clic)
+            if (event.pointerType !== 'touch') {
+                handleAction();
+            }
+        });
+
+        function jump() {
+            if (isJumping) return;
+            isJumping = true;
+            skater.classList.add("jump");
+
+            setTimeout(() => {
+                skater.classList.remove("jump");
+                isJumping = false;
+            }, 500); 
+        }
+
+        function gameLoop() {
+            if (isGameOver) return;
+
+            let containerWidth = container.offsetWidth;
+            let obstacleLeft = parseInt(window.getComputedStyle(obstacle).getPropertyValue("left"));
+            
+            if (obstacleLeft < -25) {
+                obstacleLeft = containerWidth;
+                score++;
+                scoreDisplay.innerText = score;
+                
+                if (score % 5 === 0) {
+                    obstacleSpeed += 1;
+                }
+            }
+            
+            obstacle.style.left = (obstacleLeft - obstacleSpeed) + "px";
+
+            let skaterBottom = parseInt(window.getComputedStyle(skater).getPropertyValue("bottom"));
+            
+            // Collision ajustée pour la boîte de réception
+            if (obstacleLeft > 50 && obstacleLeft < 90 && skaterBottom < 40) {
+                endGame();
+                return;
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function endGame() {
+            isGameOver = true;
+            gameOverText.style.display = "block";
+            cancelAnimationFrame(animationFrameId);
+        }
+
+        function resetGame() {
+            isGameOver = false;
+            score = 0;
+            obstacleSpeed = 5;
+            scoreDisplay.innerText = score;
+            gameOverText.style.display = "none";
+            obstacle.style.left = "100%";
+            gameLoop();
+        }
+
+        // Lancement immédiat
+        gameLoop();
+    </script>
+</body>
+</html>
