@@ -100,7 +100,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 24px;
+            font-size: 22px;
             font-weight: bold;
             color: #ff4757;
             text-align: center;
@@ -108,11 +108,11 @@
             z-index: 10;
         }
 
-        .game-over-btn {
+        .btn-choix-game {
             display: inline-block;
-            margin-top: 10px;
-            padding: 10px 20px;
-            font-size: 16px;
+            margin-top: 15px;
+            padding: 8px 16px;
+            font-size: 14px;
             font-weight: bold;
             color: white;
             background-color: #2ed573;
@@ -122,20 +122,20 @@
             text-transform: uppercase;
             box-shadow: 0 4px #1e944f;
         }
-        .game-over-btn:active {
+        .btn-choix-game:active {
             transform: translateY(2px);
             box-shadow: 0 2px #1e944f;
         }
         #btn-restart-direct {
             background-color: #ffa502;
             box-shadow: 0 4px #b87500;
-            margin-left: 10px;
+            margin-left: 8px;
         }
         #btn-restart-direct:active {
             box-shadow: 0 2px #b87500;
         }
 
-        /* --- ÉCRAN DE LA PUB --- */
+        /* --- TON ÉCRAN DE PUB AVEC LOGO ET DESIGN --- */
         #simulation-pub {
             display: none; 
             position: absolute;
@@ -208,11 +208,28 @@
             0% { width: 0%; }
             100% { width: 100%; }
         }
+
+        #privacy-link {
+            margin-top: 20px;
+            font-size: 11px;
+            color: #777;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        #privacy-modal {
+            display: none;
+            position: fixed;
+            top: 5%; left: 5%; width: 90%; height: 90%;
+            background: white; border: 2px solid #333; padding: 20px;
+            z-index: 100; overflow-y: scroll; border-radius: 8px;
+        }
     </style>
 </head>
 <body>
 
     <div id="game-title">Mad-ME-BTS-Prog</div>
+
     <div id="score-board">Score : <span id="score">0</span></div>
     
     <div id="game-container">
@@ -221,15 +238,16 @@
         
         <div id="game-over-text">
             <div>GAME OVER</div>
-            <button id="btn-revive-ad" class="game-over-btn">🎬 Regarder une pub pour revive</button>
-            <button id="btn-restart-direct" class="game-over-btn">🔄 Recommencer</button>
+            <button id="btn-revive-ad" class="btn-choix-game">🎬 Regarder une pub pour revive</button>
+            <button id="btn-restart-direct" class="btn-choix-game">🔄 Recommencer</button>
         </div>
         
+        <!-- TON ÉCRAN DE PUB DE 5 SECONDES -->
         <div id="simulation-pub">
-            <div class="badge-gratuit">Publicité</div>
+            <div class="badge-gratuit">100% GRATUIT</div>
             <div id="logo-simu"></div>
             <h2 style="color: #ffffff; font-size: 22px; font-weight: 900; text-transform: uppercase; margin-bottom: 2px;">Mad-ME-BTS-Prog</h2>
-            <p id="statut-pub" style="font-size: 12px; color: #dcdde1; margin-bottom: 5px;">Chargement de la vidéo...</p>
+            <p style="font-size: 12px; color: #dcdde1; margin-bottom: 5px;">Skate Jump Game</p>
             <p id="decompte" style="font-size: 32px; font-weight: 900; color: #ffa502;">5s</p>
             <div class="barre-chargement-conteneur">
                 <div class="barre-chargement-progression" id="barre-prog"></div>
@@ -237,14 +255,16 @@
         </div>
     </div>
 
-    <script>
-        // ==============================================================
-        // CONFIGURATION GOOGLE ADMOB (Remplace les XXX par tes vrais codes)
-        // ==============================================================
-        const ADMOB_APP_ID = "ca-app-pub-XXX~XXX"; 
-        const ADMOB_REWARDED_ID = "ca-app-pub-XXX/XXX"; 
-        // ==============================================================
+    <div id="privacy-link">Politique de Confidentialité</div>
 
+    <div id="privacy-modal">
+        <h2 style="color:#ff4757; margin-bottom:10px;">Politique de Confidentialité - Mad-ME-BTS-Prog</h2>
+        <p style="font-size:12px; margin-bottom:10px;"><strong>Mise à jour :</strong> Septembre 2026</p>
+        <p style="font-size:12px; margin-bottom:10px;">Cette application respecte votre vie privée. Aucune donnée personnelle identifiable n'est collectée directement par l'application Mad-ME-BTS-Prog. Le jeu utilise Google AdMob pour diffuser des publicités récompensées anonymes (sans son forcé), conformément aux règlements du Google Play Store et de Poki.</p>
+        <button onclick="document.getElementById('privacy-modal').style.display='none'" style="padding:5px 10px; background:#333; color:white; border:none; border-radius:3px; cursor:pointer; margin-top:15px;">Fermer</button>
+    </div>
+
+    <script>
         const container = document.getElementById("game-container");
         const skater = document.getElementById("skater");
         const obstacle = document.getElementById("obstacle");
@@ -253,7 +273,6 @@
         const simuPub = document.getElementById("simulation-pub");
         const decompteDisplay = document.getElementById("decompte");
         const barreProg = document.getElementById("barre-prog");
-        const statutPub = document.getElementById("statut-pub");
 
         let score = 0;
         let isJumping = false;
@@ -263,13 +282,17 @@
         let obstacleLeft = 100;
         let animationFrameId;
 
+        document.getElementById("privacy-link").addEventListener("click", function() {
+            document.getElementById("privacy-modal").style.display = "block";
+        });
+
         function handleAction(event) {
             if (isWatchingPub || isGameOver) return;
             jump();
         }
 
         window.addEventListener("touchstart", function(event) {
-            if (event.target && event.target.classList.contains('game-over-btn')) return;
+            if (event.target && event.target.classList.contains('btn-choix-game')) return;
             if (isWatchingPub) return;
             event.preventDefault(); 
             handleAction(event);
@@ -283,37 +306,3 @@
         });
 
         window.addEventListener("mousedown", function(event) {
-            if (event.target && event.target.classList.contains('game-over-btn')) return;
-            if (event.pointerType !== 'touch') {
-                handleAction(event);
-            }
-        });
-
-        function jump() {
-            if (isJumping || isWatchingPub || isGameOver) return;
-            isJumping = true;
-            skater.classList.add("jump");
-            setTimeout(() => {
-                skater.classList.remove("jump");
-                isJumping = false;
-            }, 500); 
-        }
-
-        function gameLoop() {
-            if (isGameOver || isWatchingPub) return;
-
-            obstacleLeft -= (obstacleSpeed / container.clientWidth) * 100;
-            
-            if (obstacleLeft <= -5) {
-                obstacleLeft = 100;
-                score++;
-                scoreDisplay.textContent = score;
-                if (obstacleSpeed < 14) obstacleSpeed += 0.2;
-            }
-            
-            obstacle.style.left = obstacleLeft + "%";
-
-            let skaterRect = skater.getBoundingClientRect();
-            let obstacleRect = obstacle.getBoundingClientRect();
-
-            if (
