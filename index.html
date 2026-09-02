@@ -9,20 +9,10 @@ public class MadMeBTSGame : MonoBehaviour
 
     [Header("Interface UI")]
     public Text texteStatut;
-    public Button boutonPubRecompense;
-
-    // Identifiants de test Google AdMob (À remplacer plus tard par ton vrai ID)
-    private string adUnitId = "ca-app-pub-3940256099942544/5224354917"; 
 
     void Start()
     {
-        // Connexion de la fonction au bouton de la pub
-        if (boutonPubRecompense != null)
-        {
-            boutonPubRecompense.onClick.AddListener(AfficherPublicite);
-        }
-        
-        MettreAJourStatut("Mad-Me-BTS : Prêt sur Mobile");
+        MettreAJourStatut("Mad-Me-BTS : Prêt");
     }
 
     void Update()
@@ -35,30 +25,27 @@ public class MadMeBTSGame : MonoBehaviour
         {
             Touch touche = Input.GetTouch(0);
 
-            // Dès que le joueur pose le doigt sur l'écran
+            // Dès que le joueur pose le doigt sur l'écran du téléphone
             if (touche.phase == TouchPhase.Began)
             {
-                // On vérifie qu'il ne clique pas sur le bouton de la pub
-                if (!EstSurUnBoutonUI(touche.position))
-                {
-                    FaireRouladeArriere();
-                }
+                FaireRouladeArriere();
             }
         }
 
-        // Optionnel : Permet de tester aussi sur PC avec la barre d'espace
+        // 3. CONTRÔLE POUR PC (Barre d'espace)
         if (Input.GetKeyDown(KeyCode.Space))
         {
             FaireRouladeArriere();
         }
     }
 
+    // Fonction de l'esquive
     public void FaireRouladeArriere()
     {
         if (!estEnTrainDeRouler)
         {
             estEnTrainDeRouler = true;
-            MettreAJourStatut("Esquive Tactile ! Roulade arrière !");
+            MettreAJourStatut("Esquive ! Roulade arrière !");
             
             // Simule la fin de la roulade après 1 seconde
             Invoke("FinRoulade", 1f);
@@ -71,27 +58,9 @@ public class MadMeBTSGame : MonoBehaviour
         MettreAJourStatut("Sur le skate");
     }
 
-    public void AfficherPublicite()
-    {
-        MettreAJourStatut("Chargement de la publicité...");
-        Invoke("PubliciteTermineeRecompense", 2f); // Simule 2 secondes de pub
-    }
-
-    void PubliciteTermineeRecompense()
-    {
-        MettreAJourStatut("Pub visionnée ! +100 Pièces BTS");
-    }
-
     void MettreAJourStatut(string message)
     {
         if (texteStatut != null) texteStatut.text = message;
         Debug.Log(message);
-    }
-
-    // Permet d'éviter de déclencher une roulade si on clique sur le bouton Pub
-    private bool EstSurUnBoutonUI(Vector2 positionTactile)
-    {
-        return UnityEngine.EventSystems.EventSystem.current != null && 
-               UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject(Input.GetTouch(0).fingerId);
     }
 }
