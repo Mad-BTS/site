@@ -94,6 +94,7 @@
             100% { bottom: 0; transform: rotate(-360deg); }
         }
 
+        /* CORRIGÉ : L'écran n'apparaît que mort et ne bloque plus le début */
         #game-over-text {
             display: none;
             position: absolute;
@@ -105,7 +106,7 @@
             color: #ff4757;
             text-align: center;
             width: 100%;
-            z-index: 10;
+            z-index: 30; 
         }
 
         .btn-choix-game {
@@ -135,7 +136,7 @@
             box-shadow: 0 2px #b87500;
         }
 
-        /* --- TON ÉCRAN DE PUB AVEC LOGO ET DESIGN --- */
+        /* --- ÉCRAN DE LA PUB --- */
         #simulation-pub {
             display: none; 
             position: absolute;
@@ -144,7 +145,7 @@
             width: 100%;
             height: 100%;
             background: #1e272e;
-            z-index: 20;
+            z-index: 40;
             color: white;
             font-family: Arial, sans-serif;
             text-align: center;
@@ -242,7 +243,6 @@
             <button id="btn-restart-direct" class="btn-choix-game">🔄 Recommencer</button>
         </div>
         
-        <!-- TON ÉCRAN DE PUB DE 5 SECONDES -->
         <div id="simulation-pub">
             <div class="badge-gratuit">100% GRATUIT</div>
             <div id="logo-simu"></div>
