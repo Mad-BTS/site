@@ -47,7 +47,7 @@
             height: 100%;
         }
 
-        /* STYLE DE LA FENÊTRE DE PUBLICITÉ (Intégré proprement) */
+        /* POPUP DE PUB */
         #game-over-screen {
             position: fixed;
             top: 0;
@@ -100,7 +100,6 @@
         <canvas id="jeuCanvas"></canvas>
     </div>
 
-    <!-- Interface d'annonce connectée -->
     <div id="game-over-screen">
         <div class="modal-content">
             <h2>🛹 CHUTE !</h2>
@@ -114,20 +113,12 @@
 const canvas = document.getElementById("jeuCanvas");
 const ctx = canvas.getContext("2d");
 
-// Configuration dynamique du canvas
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = canvas.parentElement.clientHeight;
-    
-    GROUND_Y = canvas.height - 100; 
-    if (!skater.isJumping) {
-        skater.y = GROUND_Y;
-    }
-    obstacle.y = GROUND_Y + 20;
-}
+// Taille par défaut pour éviter l'écran vide au démarrage
+canvas.width = window.innerWidth || 800;
+canvas.height = window.innerHeight - 80 ? window.innerHeight - 80 : 400;
 
 // Variables physiques globales
-let GROUND_Y = 200;
+let GROUND_Y = canvas.height - 120;
 const GRAVITY = 0.6;
 const JUMP_POWER = -12;
 
@@ -147,8 +138,8 @@ let skater = {
 };
 
 let obstacle = {
-    x: 800,
-    y: 220,
+    x: canvas.width + 100,
+    y: GROUND_Y + 20,
     width: 30,
     height: 40,
     speed: 6
@@ -158,12 +149,23 @@ let score = 0;
 let gameOver = false;
 let scoreActuel = 0;
 
-// Initialisation de la taille de l'écran
+// Configuration dynamique du canvas au redimensionnement
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    if (canvas.parentElement && canvas.parentElement.clientHeight) {
+        canvas.height = canvas.parentElement.clientHeight;
+    }
+    GROUND_Y = canvas.height - 120; 
+    if (!skater.isJumping) {
+        skater.y = GROUND_Y;
+    }
+    obstacle.y = GROUND_Y + 20;
+}
+
 window.addEventListener('resize', resizeCanvas);
 setTimeout(resizeCanvas, 100);
 
 function handleAction() {
-    // Bloque l'action de saut si la fenêtre de pub est ouverte à l'écran
     let ecranPub = document.getElementById("game-over-screen");
     if (ecranPub && ecranPub.style.display === "flex") return;
 
@@ -188,6 +190,7 @@ window.addEventListener("touchstart", function(e) {
 }, { passive: true });
 
 function resetGame() {
+    resizeCanvas();
     skater.y = GROUND_Y;
     skater.vy = 0;
     skater.isJumping = false;
@@ -202,7 +205,6 @@ function resetGame() {
 function update() {
     if (gameOver) return;
 
-    // Physique du saut
     skater.vy += skater.gravity;
     skater.y += skater.vy;
 
@@ -210,7 +212,6 @@ function update() {
         skater.angle += rotationStep;
     }
 
-    // Détection du sol
     if (skater.y > GROUND_Y) {
         skater.y = GROUND_Y;
         skater.vy = 0;
@@ -218,7 +219,6 @@ function update() {
         skater.angle = 0; 
     }
 
-    // Mouvement de l'obstacle
     obstacle.x -= obstacle.speed;
     if (obstacle.x < -obstacle.width) {
         obstacle.x = canvas.width + Math.random() * 100;
@@ -226,7 +226,6 @@ function update() {
         obstacle.speed += 0.3;
     }
 
-    // Collisions
     let skaterHitbox = {
         x: skater.x + 8,
         y: skater.y + 5,
@@ -241,11 +240,10 @@ function update() {
         obstacle.y + obstacle.height > skaterHitbox.y
     ) {
         gameOver = true;
-        declencherGameOver(score); // Ouvre proprement le menu publicitaire
+        declencherGameOver(score);
     }
 }
 
-// Affiche la pop-up de Game Over
 function declencherGameOver(scoreDuJoueur) {
     scoreActuel = scoreDuJoueur || 0;
     let ecran = document.getElementById("game-over-screen");
@@ -255,7 +253,6 @@ function declencherGameOver(scoreDuJoueur) {
     if (ecran) ecran.style.display = "flex";
 }
 
-// Simule le chargement AdMob
 function demanderPubRevivre() {
     alert("🎬 Affichage de la publicité (Test)...\n\nVotre skateur repart dans 3 secondes !");
     setTimeout(function() {
@@ -263,7 +260,6 @@ function demanderPubRevivre() {
     }, 3000);
 }
 
-// Relance le skateur sur sa planche à l'endroit exact de sa chute
 function accorderSecondeChance() {
     let ecran = document.getElementById("game-over-screen");
     if (ecran) ecran.style.display = "none";
@@ -273,7 +269,7 @@ function accorderSecondeChance() {
     skater.vy = 0;
     skater.isJumping = false;
     skater.angle = 0;
-    obstacle.x = canvas.width + 150; // Donne un peu d'espace de sécurité
+    obstacle.x = canvas.width + 150; 
     
     loop();
 }
@@ -292,25 +288,20 @@ function drawSkater() {
     let ox = -skater.width / 2;
     let oy = -skater.height / 2;
 
-    // Torse
     ctx.fillStyle = "#3498db";
     ctx.fillRect(ox + 10, oy + 20, 20, 25);
 
-    // Tête
     ctx.fillStyle = "#ffdbac";
     ctx.fillRect(ox + 13, oy + 5, 14, 15);
 
-    // Casquette
     ctx.fillStyle = "#e74c3c";
     ctx.fillRect(ox + 10, oy, 17, 6); 
     ctx.fillRect(ox + 18, oy + 4, 14, 3); 
 
-    // Pantalon
     ctx.fillStyle = "#2c3e50";
     ctx.fillRect(ox + 10, oy + 45, 9, 10); 
     ctx.fillRect(ox + 21, oy + 45, 9, 10); 
 
-    // Skate
     ctx.fillStyle = "#d35400"; 
     ctx.fillRect(ox, oy + 55, skater.width, 5);
 
@@ -327,17 +318,14 @@ function drawSkater() {
 }
 
 function draw() {
-    // Ciel
     ctx.fillStyle = "#87CEEB";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Soleil
     ctx.fillStyle = "#f1c40f";
     ctx.beginPath();
     ctx.arc(canvas.width - 80, 50, 30, 0, Math.PI * 2);
     ctx.fill();
 
-    // Sol adaptatif
     ctx.fillStyle = "#7f8c8d";
     ctx.fillRect(0, GROUND_Y + 60, canvas.width, canvas.height - GROUND_Y);
     ctx.fillStyle = "#95a5a6"; 
@@ -345,16 +333,13 @@ function draw() {
 
     drawSkater();
 
-    // Obstacle
     ctx.fillStyle = "#e74c3c";
     ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
     ctx.fillStyle = "#c0392b";
     ctx.fillRect(obstacle.x + 5, obstacle.y - 5, obstacle.width - 10, 5);
 
-    // Score
     ctx.fillStyle = "#fff";
     ctx.font = "bold 20px Arial";
-
     ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
     ctx.shadowBlur = 4;
     ctx.fillText("Score : " + score, 20, 35);
@@ -374,7 +359,7 @@ function loop() {
     }
 }
 
-// Démarrage officiel du jeu
+// Lancement immédiat
 loop();
 </script>
 </body>
