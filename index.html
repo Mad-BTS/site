@@ -84,71 +84,30 @@
             clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
         }
 
-        .obstacle-move {
-            animation: moveObstacle 2s infinite linear;
-        }
-
-        @keyframes moveObstacle {
-            0% { left: 100%; }
-            100% { left: -40px; }
-        }
-
         .jump {
             animation: jumpAnimation 0.5s linear;
         }
 
         @keyframes jumpAnimation {
-            0% { bottom: 0; }
-            50% { bottom: 120px; }
-            100% { bottom: 0; }
+            0% { bottom: 0; transform: rotate(0deg); }
+            50% { bottom: 120px; transform: rotate(-180deg); }
+            100% { bottom: 0; transform: rotate(-360deg); }
         }
 
-        #game-over-screen {
+        #game-over-text {
             display: none;
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            text-align: center;
-            width: 100%;
-            z-index: 10;
-        }
-
-        #game-over-text {
             font-size: 26px;
             font-weight: bold;
             color: #ff4757;
-            margin-bottom: 10px;
+            text-align: center;
+            width: 100%;
         }
 
-        .btn-game {
-            background-color: #2ed573;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            font-size: 14px;
-            font-weight: bold;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 5px;
-            text-transform: uppercase;
-            box-shadow: 0px 4px 0px #21a453;
-        }
-
-        .btn-game:active {
-            transform: translateY(2px);
-            box-shadow: 0px 2px 0px #21a453;
-        }
-
-        #btn-restart {
-            background-color: #ffa502;
-            box-shadow: 0px 4px 0px #cc8400;
-        }
-        #btn-restart:active {
-            box-shadow: 0px 2px 0px #cc8400;
-        }
-
-        /* --- ÉCRAN DE LA PUB SIMULÉE --- */
+        /* --- ÉCRAN DE LA PUB AVEC LOGO ET TITRE --- */
         #simulation-pub {
             display: none; 
             position: absolute;
@@ -173,6 +132,7 @@
             border-radius: 6px;
             position: relative;
             margin-bottom: 10px;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
         }
 
         #logo-simu::before, #logo-simu::after {
@@ -197,6 +157,8 @@
             border-radius: 20px;
             text-transform: uppercase;
             margin-bottom: 5px;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
         .barre-chargement-conteneur {
@@ -212,6 +174,7 @@
             width: 0%;
             height: 100%;
             background-color: #2ed573;
+            animation: faussePubAnim 5s linear forwards;
         }
 
         @keyframes faussePubAnim {
@@ -223,101 +186,140 @@
 <body>
 
     <div id="game-title">Mad-ME-BTS-Prog</div>
+
     <div id="score-board">Score : <span id="score">0</span></div>
     
     <div id="game-container">
         <div id="skater"></div>
-        <div id="obstacle" class="obstacle-move"></div>
+        <div id="obstacle"></div>
+        <div id="game-over-text"></div>
         
-        <div id="game-over-screen">
-            <div id="game-over-text">GAME OVER</div>
-            <button id="btn-revive" class="btn-game">🎬 Continuer (+1 Vie)</button>
-            <button id="btn-restart" class="btn-game">🔄 Recommencer</button>
-        </div>
-        
-        <!-- PUB SIMULÉE -->
+        <!-- ÉCRAN DE PUB SIMULÉE SANS COMPORTEMENT CAPRICIEUX -->
         <div id="simulation-pub">
-            <div class="badge-gratuit">Publicité</div>
+            <div class="badge-gratuit">100% GRATUIT</div>
             <div id="logo-simu"></div>
             <h2 style="color: #ffffff; font-size: 22px; font-weight: 900; text-transform: uppercase; margin-bottom: 2px;">Mad-ME-BTS-Prog</h2>
-            <p style="font-size: 12px; color: #dcdde1; margin-bottom: 5px;">Chargement du bonus...</p>
+            <p style="font-size: 12px; color: #dcdde1; margin-bottom: 5px;">Skate Jump Game</p>
             <p id="decompte" style="font-size: 32px; font-weight: 900; color: #ffa502;">5s</p>
             <div class="barre-chargement-conteneur">
-                <div class="barre-chargement-progression" id="barre-prog"></div>
+                <div class="barre-chargement-progression"></div>
             </div>
         </div>
     </div>
 
     <script>
+        const container = document.getElementById("game-container");
         const skater = document.getElementById("skater");
         const obstacle = document.getElementById("obstacle");
         const scoreDisplay = document.getElementById("score");
-        const gameOverScreen = document.getElementById("game-over-screen");
+        const gameOverText = document.getElementById("game-over-text");
         const simuPub = document.getElementById("simulation-pub");
         const decompteDisplay = document.getElementById("decompte");
-        const barreProg = document.getElementById("barre-prog");
-        const btnRevive = document.getElementById("btn-revive");
-        const btnRestart = document.getElementById("btn-restart");
 
         let score = 0;
         let isJumping = false;
         let isGameOver = false;
-        let isWatchingPub = false;
-        let scoreInterval;
-        let collisionCheckInterval;
+        let isWatchingPub = false; 
+        let obstacleSpeed = 6;
+        let obstacleLeft = 100; // Gère la position de l'obstacle en %
+        let animationFrameId;
 
-        // Éviter les sorties accidentelles sur mobile
-        window.addEventListener('load', function() {
-            window.history.pushState({ noBackExits: true }, '');
-        });
-        window.addEventListener('popstate', function(event) {
-            window.history.pushState({ noBackExits: true }, '');
-            if (isGameOver) {
-                resetGame(true);
+        if (typeof PokiSDK !== 'undefined') {
+            PokiSDK.init().then(() => {
+                console.log("Poki SDK chargé avec succès !");
+            }).catch(() => {
+                console.log("Mode test actif.");
+            });
+        }
+
+        function handleAction(event) {
+            if (isWatchingPub) return;
+            if (event && event.target && event.target.id === 'revive-btn') {
+                return;
             }
-        });
-
-        // Commandes globales
-        document.getElementById("game-container").addEventListener("touchstart", function(e) {
-            if(e.target.classList.contains('btn-game') || isWatchingPub) return;
-            e.preventDefault();
-            if (!isGameOver) jump();
-        }, { passive: false });
-
-        document.getElementById("game-container").addEventListener("mousedown", function(e) {
-            if(e.target.classList.contains('btn-game') || isWatchingPub || e.pointerType === 'touch') return;
-            if (!isGameOver) jump();
-        });
-
-        document.addEventListener("keydown", function(e) {
-            if (e.code === "Space" && !isGameOver && !isWatchingPub) {
-                e.preventDefault();
+            
+            if (isGameOver) {
+                resetGame();
+            } else {
                 jump();
             }
+        }
+
+        window.addEventListener("touchstart", function(event) {
+            if (event.target && event.target.id === 'revive-btn') return;
+            if (isWatchingPub) return;
+            
+            event.preventDefault(); 
+            handleAction(event);
+        }, { passive: false });
+
+        document.addEventListener("keydown", function(event) {
+            if (event.code === "Space") {
+                event.preventDefault(); 
+                handleAction(event);
+            }
         });
 
-        // Clics sur les boutons du menu Game Over
-        btnRestart.addEventListener("click", function(e) { e.stopPropagation(); resetGame(true); });
-        btnRevive.addEventListener("click", function(e) { e.stopPropagation(); watchAdAndRevive(); });
-        btnRestart.addEventListener("touchstart", function(e) { e.stopPropagation(); resetGame(true); });
-        btnRevive.addEventListener("touchstart", function(e) { e.stopPropagation(); watchAdAndRevive(); });
+        window.addEventListener("mousedown", function(event) {
+            if (event.pointerType !== 'touch') {
+                handleAction(event);
+            }
+        });
 
         function jump() {
-            if (isJumping || isGameOver || isWatchingPub) return;
+            if (isJumping || isWatchingPub || isGameOver) return;
             isJumping = true;
             skater.classList.add("jump");
+
             setTimeout(() => {
                 skater.classList.remove("jump");
                 isJumping = false;
             }, 500); 
         }
 
-        function startLoop() {
-            scoreInterval = setInterval(() => {
-                if (!isGameOver && !isWatchingPub) {
-                    score++;
-                    scoreDisplay.textContent = score;
-                }
-            }, 1000);
+        // --- LA BOUCLE DE JEU QUE J'AI CORRIGÉE ET FERMÉE ---
+        function gameLoop() {
+            if (isGameOver || isWatchingPub) return;
 
-            collisionCheckInterval = setInterval(() => {
+            // Fait avancer le bloc de droite à gauche
+            obstacleLeft -= (obstacleSpeed / container.clientWidth) * 100;
+            
+            // Si le bloc sort de l'écran, il revient à droite et ajoute 1 point
+            if (obstacleLeft <= -5) {
+                obstacleLeft = 100;
+                score++;
+                scoreDisplay.textContent = score;
+                if (obstacleSpeed < 14) obstacleSpeed += 0.2; // Augmente la difficulté
+            }
+            
+            obstacle.style.left = obstacleLeft + "%";
+
+            // Vérification des collisions géométriques entre le skateur et le bloc
+            let skaterRect = skater.getBoundingClientRect();
+            let obstacleRect = obstacle.getBoundingClientRect();
+
+            if (
+                skaterRect.right > obstacleRect.left &&
+                skaterRect.left < obstacleRect.right &&
+                skaterRect.bottom > obstacleRect.top
+            ) {
+                endGame();
+                return;
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function endGame() {
+            isGameOver = true;
+            cancelAnimationFrame(animationFrameId);
+            gameOverText.innerHTML = "GAME OVER<br><span style='font-size:16px; color:#333;'>Cliquez ou Espace pour rejouer</span>";
+            gameOverText.style.display = "block";
+        }
+
+        function resetGame() {
+            score = 0;
+            obstacleSpeed = 6;
+            obstacleLeft = 100;
+            isGameOver = false;
+            isJumping = false;
