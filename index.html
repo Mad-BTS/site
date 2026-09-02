@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mad-BTS-Prog</title>
+    <!-- SCRIPT OFFICIEL GOOGLE ADMOB (Chargement de la régie publicitaire) -->
+    <script src="https://googlesyndication.com" crossorigin="anonymous" async></script>
     <style>
         * {
             box-sizing: border-box;
@@ -16,24 +18,31 @@
             overflow: hidden;
             background-color: #1a1a1a;
             font-family: Arial, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
         }
         body {
             display: flex;
             flex-direction: column;
         }
         .header-ui {
-            padding: 10px;
+            padding: 12px;
             text-align: center;
             color: white;
             background: #222;
+            border-bottom: 2px solid #ff5722;
             z-index: 10;
         }
         h1 {
             font-size: 1.4rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #ff5722;
         }
         p {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             color: #ccc;
+            margin-top: 3px;
         }
         .game-container {
             flex: 1;
@@ -41,10 +50,82 @@
             position: relative;
         }
         canvas {
-            background-color: #87CEEB;
             display: block;
             width: 100%;
             height: 100%;
+        }
+
+        /* Interface tactiles mobiles */
+        .mobile-controls {
+            display: none;
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            width: 100%;
+            padding: 0 20px;
+            justify-content: space-between;
+            z-index: 20;
+        }
+        .mobile-btn {
+            background: rgba(255, 87, 34, 0.8);
+            color: white;
+            border: 2px solid white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            outline: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .mobile-btn:active {
+            background: rgba(231, 76, 60, 0.9);
+            transform: scale(0.95);
+        }
+
+        /* Pop-up AdMob de Chute */
+        #game-over-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: none;
+            justify-content: center; align-items: center;
+            z-index: 99999;
+        }
+        .modal-content {
+            background-color: #222222;
+            color: #ffffff;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            border: 3px solid #ff5722;
+            box-shadow: 0 0 25px rgba(255, 87, 34, 0.4);
+            width: 290px;
+        }
+        .modal-content h2 {
+            font-size: 24px;
+            color: #e74c3c;
+            margin-bottom: 10px;
+        }
+        .modal-content button {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            margin: 12px 0;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        #btn-revive { background-color: #4CAF50; color: white; }
+        #btn-restart { background-color: #f44336; color: white; }
+
+        @media (max-width: 850px) {
+            .mobile-controls {
+                display: flex;
+            }
         }
     </style>
 </head>
@@ -52,30 +133,33 @@
 
     <div class="header-ui">
         <h1>Mad-BTS-Prog</h1>
-        <p>Touchez l'écran ou Espace pour faire un Kickflip !</p>
+        <p>Espace sur Ordi ou Boutons Tactiles sur Mobile !</p>
     </div>
     
     <div class="game-container">
         <canvas id="jeuCanvas"></canvas>
+        
+        <div class="mobile-controls">
+            <button class="mobile-btn" id="btn-mobile-reset" onclick="handleMobileReset()">🔄 Relancer</button>
+            <button class="mobile-btn" id="btn-mobile-jump" onclick="handleAction()">SAUTER 🛹</button>
+        </div>
+    </div>
+
+    <!-- Écran publicitaire AdMob -->
+    <div id="game-over-screen">
+        <div class="modal-content">
+            <h2>🛹 CHUTE !</h2>
+            <p>Score actuel : <span id="current-score" style="color:#ff5722; font-weight:bold; font-size:20px;">0</span> points</p>
+            <button id="btn-revive" onclick="demanderPubRevivre()">🎬 Revivre (Regarder une pub)</button>
+            <button id="btn-restart" onclick="recommencerPartie()">❌ Abandonner</button>
+        </div>
     </div>
 
 <script>
 const canvas = document.getElementById("jeuCanvas");
 const ctx = canvas.getContext("2d");
 
-// Configuration dynamique du canvas
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = canvas.parentElement.clientHeight;
-    
-    GROUND_Y = canvas.height - 100; 
-    if (!skater.isJumping) {
-        skater.y = GROUND_Y;
-    }
-    obstacle.y = GROUND_Y + 20;
-}
-
-// Variables physiques globales
+// Configuration et redimensionnement automatique
 let GROUND_Y = 200;
 const GRAVITY = 0.6;
 const JUMP_POWER = -12;
@@ -84,97 +168,85 @@ const airTimeFrames = Math.abs(JUMP_POWER / GRAVITY) * 2;
 const rotationStep = (Math.PI * 2) / airTimeFrames;
 
 let skater = {
-    x: 50,
-    y: GROUND_Y,
-    width: 40,
-    height: 60,
-    vy: 0,
-    gravity: GRAVITY,
-    jumpPower: JUMP_POWER,
-    isJumping: false,
-    angle: 0
+    x: 60, y: GROUND_Y,
+    width: 40, height: 60,
+    vy: 0, gravity: GRAVITY, jumpPower: JUMP_POWER,
+    isJumping: false, angle: 0
 };
 
 let obstacle = {
-    x: 800,
-    y: 220,
-    width: 30,
-    height: 40,
-    speed: 6
+    x: 900, y: 0,
+    width: 30, height: 40,
+    speed: 6.5
 };
 
 let score = 0;
 let gameOver = false;
-let pubEnCours = false; // Gère l'état d'attente de la pub
 
-// Initialisation de la taille de l'écran
+// Variables pour l'intégration de la vraie publicité Google AdMob
+let adRewarded = null;
+const AD_REWARDED_ID = 'ca-app-pub-3940256099942544/5224354917'; // Identifiant de test AdMob officiel
+
+function initialiserAdMob() {
+    if (typeof admob !== 'undefined') {
+        admob.rewarded.load({
+            id: AD_REWARDED_ID
+        }).then((ad) => {
+            adRewarded = ad;
+            console.log("AdMob : Vidéo publicitaire chargée avec succès !");
+        }).catch((err) => {
+            console.error("AdMob Erreur :", err);
+        });
+    }
+}
+
+// Lancement automatique d'AdMob dès l'ouverture du site
+window.onload = function() {
+    initialiserAdMob();
+};
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+    GROUND_Y = canvas.height - 110; 
+    if (!skater.isJumping) {
+        skater.y = GROUND_Y;
+    }
+    obstacle.y = GROUND_Y + 20;
+}
+
 window.addEventListener('resize', resizeCanvas);
 setTimeout(resizeCanvas, 100);
 
 function handleAction() {
-    // Si une pub est en cours, les clics sur l'écran ne font rien
-    if (pubEnCours) return;
+    if (document.getElementById("game-over-screen").style.display === "flex") return;
 
     if (!skater.isJumping && !gameOver) {
         skater.vy = skater.jumpPower;
         skater.isJumping = true;
-    } else if (gameOver) {
-        // Au clic après un game over, on lance la simulation de pub
-        lancerPubPre-Reward();
     }
 }
 
-// Contrôles
+function handleMobileReset() {
+    if (gameOver && document.getElementById("game-over-screen").style.display !== "flex") {
+        resetGame();
+    }
+}
+
 document.addEventListener("keydown", function(e) {
     if (e.code === "Space") {
         e.preventDefault();
-        handleAction();
+        if (gameOver && document.getElementById("game-over-screen").style.display !== "flex") {
+            resetGame();
+        } else {
+            handleAction();
+        }
     }
 });
 
-window.addEventListener("touchstart", function(e) {
-    handleAction();
-}, { passive: true });
-
-function lancerPubPre-Reward() {
-    gameOver = false;
-    pubEnCours = true;
-    
-    // Déclenche une fausse alerte de chargement
-    alert("🎬 Chargement de la vidéo publicitaire (Test AdMob)...\n\nPatientez 3 secondes pour revivre !");
-    
-    setTimeout(function() {
-        pubEnCours = false;
-        revivreSkateur();
-    }, 3000);
-}
-
-function revivreSkateur() {
-    // Réinitialise le skateur sans remettre le score à zéro !
-    skater.y = GROUND_Y;
-    skater.vy = 0;
-    skater.isJumping = false;
-    skater.angle = 0;
-    obstacle.x = canvas.width + 150; // Repousse l'obstacle pour laisser une marge
-    loop();
-}
-
-function resetGame() {
-    skater.y = GROUND_Y;
-    skater.vy = 0;
-    skater.isJumping = false;
-    skater.angle = 0;
-    obstacle.x = canvas.width + 50;
-    obstacle.speed = 6;
-    score = 0;
-    gameOver = false;
-    loop();
-}
-
 function update() {
-    if (gameOver || pubEnCours) return;
+    if (gameOver) return;
 
-    // Physique du saut
     skater.vy += skater.gravity;
     skater.y += skater.vy;
 
@@ -182,7 +254,6 @@ function update() {
         skater.angle += rotationStep;
     }
 
-    // Détection du sol
     if (skater.y > GROUND_Y) {
         skater.y = GROUND_Y;
         skater.vy = 0;
@@ -190,20 +261,16 @@ function update() {
         skater.angle = 0; 
     }
 
-    // Mouvement de l'obstacle
     obstacle.x -= obstacle.speed;
     if (obstacle.x < -obstacle.width) {
-        obstacle.x = canvas.width + Math.random() * 100;
+        obstacle.x = canvas.width + Math.random() * 150; 
         score++;
-        obstacle.speed += 0.3;
+        obstacle.speed += 0.35; 
     }
 
-    // Collisions
     let skaterHitbox = {
-        x: skater.x + 8,
-        y: skater.y + 5,
-        width: skater.width - 16,
-        height: skater.height - 5
+        x: skater.x + 8, y: skater.y + 5,
+        width: skater.width - 16, height: skater.height - 5
     };
 
     if (
@@ -213,6 +280,8 @@ function update() {
         obstacle.y + obstacle.height > skaterHitbox.y
     ) {
         gameOver = true;
+        document.getElementById("current-score").innerText = score;
+        document.getElementById("game-over-screen").style.display = "flex";
     }
 }
 
@@ -224,109 +293,53 @@ function drawSkater() {
     let ox = -skater.width / 2;
     let oy = -skater.height / 2;
 
-    // Torse
     ctx.fillStyle = "#3498db";
     ctx.fillRect(ox + 10, oy + 20, 20, 25);
 
-    // Tête
     ctx.fillStyle = "#ffdbac";
     ctx.fillRect(ox + 13, oy + 5, 14, 15);
 
-    // Casquette
     ctx.fillStyle = "#e74c3c";
     ctx.fillRect(ox + 10, oy, 17, 6); 
     ctx.fillRect(ox + 18, oy + 4, 14, 3); 
 
-    // Pantalon
     ctx.fillStyle = "#2c3e50";
     ctx.fillRect(ox + 10, oy + 45, 9, 10); 
     ctx.fillRect(ox + 21, oy + 45, 9, 10); 
 
-    // Skate
     ctx.fillStyle = "#d35400"; 
     ctx.fillRect(ox, oy + 55, skater.width, 5);
 
     ctx.fillStyle = "#000"; 
-    ctx.beginPath();
-    ctx.arc(ox + 8, oy + 61, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(ox + skater.width - 8, oy + 61, 4, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(ox + 8, oy + 61, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ox + skater.width - 8, oy + 61, 4, 0, Math.PI * 2); ctx.fill();
 
     ctx.restore();
 }
 
 function draw() {
-    // Ciel
-    ctx.fillStyle = "#87CEEB";
+    let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, '#1a2a6c');
+    gradient.addColorStop(0.5, '#b21f1f');
+    gradient.addColorStop(1, '#fdbb2d');
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Soleil
-    ctx.fillStyle = "#f1c40f";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
     ctx.beginPath();
-    ctx.arc(canvas.width - 80, 50, 30, 0, Math.PI * 2);
+    ctx.arc(canvas.width - 100, 90, 45, 0, Math.PI * 2);
     ctx.fill();
 
-    // Sol adaptatif
-    ctx.fillStyle = "#7f8c8d";
+    ctx.fillStyle = "#333333";
     ctx.fillRect(0, GROUND_Y + 60, canvas.width, canvas.height - GROUND_Y);
-    ctx.fillStyle = "#95a5a6"; 
+    ctx.fillStyle = "#ff5722"; 
     ctx.fillRect(0, GROUND_Y + 60, canvas.width, 4);
 
     drawSkater();
 
-    // Obstacle
     ctx.fillStyle = "#e74c3c";
     ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
     ctx.fillStyle = "#c0392b";
     ctx.fillRect(obstacle.x + 5, obstacle.y - 5, obstacle.width - 10, 5);
 
-    // Score
     ctx.fillStyle = "#fff";
-    ctx.font = "bold 20px Arial";
-
-    ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-    ctx.shadowBlur = 4;
-    ctx.fillText("Score : " + score, 20, 35);
-    ctx.shadowBlur = 0;
-
-    if (pubEnCours) {
-        // Écran noir pendant le chargement de la pub
-        ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#fff";
-        ctx.textAlign = "center";
-        ctx.font = "bold 24px Arial";
-        ctx.fillText("PUBLICITÉ EN COURS...", canvas.width / 2, canvas.height / 2);
-        ctx.textAlign = "left";
-    } else if (gameOver) {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        ctx.fillStyle = "#fff";
-        ctx.textAlign = "center";
-        ctx.font = "bold 30px Arial";
-        ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 20);
-        
-        ctx.font = "16px Arial";
-        ctx.fillStyle = "#4CAF50"; // Message en vert pour attirer l'oeil
-        ctx.fillText("🎬 Cliquez pour voir une pub et REVIVRE !", canvas.width / 2, canvas.height / 2 + 30);
-        ctx.textAlign = "left";
-    }
-}
-
-function loop() {
-    update();
-    draw();
-    if (!gameOver && !pubEnCours) {
-        requestAnimationFrame(loop);
-    }
-}
-
-// Lancement automatique du jeu
-loop();
-</script>
-</body>
-</html>
