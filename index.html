@@ -299,47 +299,84 @@ function loop() {
     if (!gameOver) {
         requestAnimationFrame(loop);
     }
+}/* ==========================================
+   CODE DE LA FENÊTRE DE PUB (GAME OVER)
+   ========================================== */
+
+// 1. On injecte le design CSS et le bouton HTML magiquement
+document.write(`
+<style>
+#game-over-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.75); display: none;
+    justify-content: center; align-items: center; z-index: 99999;
+    font-family: Arial, sans-serif;
+}
+.modal-content {
+    background-color: #222222; color: #ffffff; padding: 25px;
+    border-radius: 15px; text-align: center; border: 3px solid #ff5722;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.6); width: 280px;
+}
+.modal-content button {
+    display: block; width: 100%; padding: 12px; margin: 10px 0;
+    font-size: 16px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;
+}
+#btn-revive { background-color: #4CAF50; color: white; }
+#btn-restart { background-color: #f44336; color: white; }
+</style>
+
+<div id="game-over-screen">
+    <div class="modal-content">
+        <h2>🛹 CHUTE !</h2>
+        <p>Votre score actuel : <span id="current-score">0</span> points</p>
+        <button id="btn-revive" onclick="demanderPubRevivre()">🎬 Revivre (Regarder une pub)</button>
+        <button id="btn-restart" onclick="recommencerPartie()">❌ Abandonner</button>
+    </div>
+</div>
+`);
+
+// 2. Variables obligatoires
+if (typeof pubRecompensee === 'undefined') { var pubRecompensee = null; }
+let scoreActuel = 0;
+
+// 3. Fonction qui affiche l'écran quand le skateur tombe
+function declencherGameOver(scoreDuJoueur) {
+    scoreActuel = scoreDuJoueur || 0;
+    let ecran = document.getElementById("game-over-screen");
+    let texteScore = document.getElementById("current-score");
+    if (texteScore) texteScore.innerText = scoreActuel;
+    if (ecran) ecran.style.setProperty('display', 'flex', 'important');
 }
 
-// Lancement initial après calculs de taille
-resizeCanvas();
-loop();
-    // Variable obligatoire pour stocker la publicité AdMob
-if (typeof pubRecompensee === 'undefined') {
-    var pubRecompensee = null;
-}
-
-// Fonction qui se déclenche quand le joueur clique sur le bouton "Revivre"
+// 4. Action quand on clique sur le bouton Revivre
 function demanderPubRevivre() {
-    if (typeof admob !== 'undefined' && pubRecompensee) {
-        pubRecompensee.show().then(() => {
-            accorderSecondeChance();
-        }).catch(() => {
-            accorderSecondeChance(); 
-        });
-    } else {
-        // Simulation de la publicité pendant 3 secondes pour vos tests
-        alert("Chargement de la publicité (Test)... Patientez 3 secondes 🎬");
-        
-        setTimeout(function() {
-            accorderSecondeChance();
-        }, 3000); 
-    }
+    alert("Chargement de la publicité (Test)... Patientez 3 secondes 🎬");
+    setTimeout(function() {
+        accorderSecondeChance();
+    }, 3000); 
 }
 
-// Fonction qui fait disparaître le menu et fait repartir votre skateur
+// 5. Relancer la partie
 function accorderSecondeChance() {
     let ecran = document.getElementById("game-over-screen");
     if (ecran) ecran.style.setProperty('display', 'none', 'important');
-    
-    // Relance la boucle du jeu si elle était coupée
     gameOver = false; 
-    if (typeof loop === 'function') {
-        requestAnimationFrame(loop);
-    }
-    
-    console.log("Le joueur a regardé la pub, le skateur repart !");
+    location.reload(); // Recharge la page pour relancer le jeu proprement
 }
+
+// 6. Si le joueur abandonne
+function recommencerPartie() {
+    location.reload();
+}
+
+
+
+
+
+    }
+}
+
+
 
 </script>
     <!-- Copiez TOUT ce bloc et collez-le juste avant </corps> -->
