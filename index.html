@@ -43,7 +43,7 @@
             display: none;
             box-shadow: 0 5px 0 #b38f00;
         }
-        /* Style différent pour le bouton recommencer */
+        /* Style distinct pour le bouton recommencer */
         #restartBtn {
             background: #2ecc71;
             box-shadow: 0 5px 0 #27ae60;
@@ -91,7 +91,7 @@
     
     <div id="ui-layer">
         <button id="adBtn" class="btn">Regarder une pub pour continuer</button>
-        <button id="restartBtn" class="btn">Recommencer à zéro</button> <!-- Nouveau bouton ajouté -->
+        <button id="restartBtn" class="btn">Recommencer à zéro</button>
     </div>
 
     <div id="ad-screen">
@@ -218,7 +218,7 @@ function spawnObstacle() {
     }
 }
 
-// Fonction utilitaire pour remettre à zéro les variables du jeu
+// Fonction utilitaire pour remettre à zéro le plateau
 function resetGameData() {
     obstacles = []; 
     gameOver = false;
@@ -254,14 +254,14 @@ window.addEventListener("touchstart", (e) => {
 });
 
 const adBtn = document.getElementById("adBtn");
-const restartBtn = document.getElementById("restartBtn"); // Liaison JavaScript
+const restartBtn = document.getElementById("restartBtn");
 const adScreen = document.getElementById("ad-screen");
 const adTimerText = document.getElementById("ad-timer");
 
-// Événement pour le bouton Publicité
+// Événement clic Publicité (Conserve le score actuel)
 adBtn.addEventListener("click", () => {
     adBtn.style.display = "none";
-    restartBtn.style.display = "none"; // On cache aussi l'autre bouton pendant la pub
+    restartBtn.style.display = "none";
     adScreen.style.display = "flex";
     isAdState = true;
     
@@ -276,17 +276,17 @@ adBtn.addEventListener("click", () => {
             clearInterval(interval);
             adScreen.style.display = "none";
             
-            resetGameData(); // Utilisation de la fonction de reset
-            requestAnimationFrame(loop);
+            resetGameData();
+            loop(); // Relance la boucle principale
         }
     }, 1000);
 });
 
-// Événement pour le NOUVEAU bouton Recommencer à zéro
+// Événement clic Recommencer (Remet le score à 0)
 restartBtn.addEventListener("click", () => {
-    score = 0; // On remet le score à zéro !
+    score = 0; 
     resetGameData();
-    requestAnimationFrame(loop);
+    loop(); // Relance la boucle principale immédiatement
 });
 
 function loop() {
@@ -321,7 +321,7 @@ function loop() {
         ) {
             gameOver = true;
             adBtn.style.display = "block";
-            restartBtn.style.display = "block"; // On affiche les DEUX boutons au Game Over
+            restartBtn.style.display = "block"; // Affiche l'option "recommencer à zéro"
         }
 
         if (obs.x + obs.width < 0) {
@@ -337,6 +337,7 @@ function loop() {
     requestAnimationFrame(loop);
 }
 
+// Lancement initial du jeu
 loop();
 </script>
 </body>
