@@ -2,350 +2,294 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Skate Runner Fixed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jeu de Skater</title>
     <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
         body {
             margin: 0;
             padding: 0;
-            background: #222;
-            overflow: hidden;
+            background-color: #f0f0f0;
             font-family: Arial, sans-serif;
-            user-select: none;
-        }
-        canvas {
-            display: block;
-            margin: 0 auto;
-            background: #87CEEB;
-        }
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
+            overflow: hidden;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            gap: 15px;
+            height: 100vh;
         }
-        .btn {
-            padding: 15px 30px;
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            height: 300px;
+            background: linear-gradient(#87CEEB, #E0F6FF);
+            border-bottom: 15px solid #333;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0px 10px 20px rgba(0,0,0,0.2);
+        }
+        #skater {
+            width: 50px;
+            height: 60px;
+            background-color: #ff4757;
+            position: absolute;
+            bottom: 0;
+            left: 50px;
+            border-radius: 8px;
+            transition: bottom 0.1s linear;
+        }
+        .jump {
+            animation: jumpAnimation 0.5s ease-out;
+        }
+        @keyframes jumpAnimation {
+            0% { bottom: 0; }
+            50% { bottom: 120px; }
+            100% { bottom: 0; }
+        }
+        #obstacle {
+            width: 25px;
+            height: 40px;
+            background-color: #2f3542;
+            position: absolute;
+            bottom: 0;
+            left: 600px;
+            border-radius: 4px;
+        }
+        #score-display {
+            position: absolute;
+            top: 15px;
+            left: 15px;
             font-size: 20px;
             font-weight: bold;
-            background: #ffcc00;
-            border: 3px solid #000;
-            border-radius: 10px;
-            cursor: pointer;
-            pointer-events: auto;
+            color: #333;
+            z-index: 10;
+        }
+        #game-over-text {
             display: none;
-            box-shadow: 0 5px 0 #b38f00;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: #ff4757;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 20;
+            width: 80%;
+            max-width: 400px;
         }
-        #restartBtn {
-            background: #2ecc71;
-            box-shadow: 0 5px 0 #27ae60;
-        }
-        .btn:active {
-            transform: translateY(3px);
-            box-shadow: 0 2px 0 #b38f00;
-        }
-        #restartBtn:active {
-            box-shadow: 0 2px 0 #27ae60;
-        }
-        #ad-screen {
+        #pub-container {
+            display: none;
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.95);
-            color: white;
-            display: none;
-            flex-direction: column;
+            background: black;
+            z-index: 30;
             justify-content: center;
             align-items: center;
+            flex-direction: column;
         }
-        #ad-image {
-            max-width: 80%;
-            max-height: 65%;
-            border: 4px solid #fff;
-            border-radius: 10px;
-            margin-bottom: 20px;
+        #pub-video {
+            width: 100%;
+            height: 100%;
             object-fit: contain;
         }
-        #ad-timer {
-            font-size: 24px;
-            font-weight: bold;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 10px 20px;
+        #pub-timer {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 12px;
             border-radius: 20px;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
 
-    <canvas id="gameCanvas"></canvas>
-    
-    <div id="ui-layer">
-        <button id="adBtn" class="btn">Regarder une pub pour continuer</button>
-        <button id="restartBtn" class="btn">Recommencer à zéro</button>
+    <div id="game-container">
+        <div id="score-display">Score : <span id="score">0</span></div>
+        <div id="skater"></div>
+        <div id="obstacle"></div>
+        
+        <div id="game-over-text"></div>
+
+        <!-- Zone Publicité (Simulation) -->
+        <div id="pub-container">
+            <div id="pub-timer">Publicité : <span id="timer-count">3</span>s</div>
+            <!-- Remplacez src par le lien d'une vraie vidéo si besoin -->
+            <video id="pub-video" src="https://w3schools.com" muted playsinline></video>
+        </div>
     </div>
 
-    <div id="ad-screen">
-        <img id="ad-image" src="image_5KM4x6.png" alt="Publicité">
-        <div id="ad-timer">3s</div>
-    </div>
+    <script>
+        const container = document.getElementById("game-container");
+        const skater = document.getElementById("skater");
+        const obstacle = document.getElementById("obstacle");
+        const scoreDisplay = document.getElementById("score");
+        const gameOverText = document.getElementById("game-over-text");
+        
+        const pubContainer = document.getElementById("pub-container");
+        const pubVideo = document.getElementById("pub-video");
+        const timerCount = document.getElementById("timer-count");
 
-<script>
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+        let score = 0;
+        let isJumping = false;
+        let isGameOver = false;
+        let isWatchingPub = false;
+        let obstacleVitesse = 6;
+        let animationFrameId;
 
-canvas.width = window.innerWidth > 800 ? 800 : window.innerWidth;
-canvas.height = 400;
+        // Gestion des interactions tactiles et clics globaux
+        function handleAction(event) {
+            if (isWatchingPub) return;
 
-let score = 0;
-let gameOver = false;
-let isAdState = false;
-let animationId = null;
-
-const gravity = 0.6;
-const groundY = canvas.height - 60;
-
-const player = {
-    x: 80,
-    y: groundY - 60,
-    width: 40,
-    height: 60,
-    vy: 0,
-    isJumping: false,
-    isRolling: false,
-    rollTimer: 0,
-    
-    jump() {
-        if (!this.isJumping && !this.isRolling && !gameOver && !isAdState) {
-            this.vy = -13;
-            this.isJumping = true;
-        }
-    },
-    
-    roll() {
-        if (!this.isJumping && !this.isRolling && !gameOver && !isAdState) {
-            this.isRolling = true;
-            this.rollTimer = 30;
-            this.height = 30;
-            this.y = groundY - 30;
-        }
-    },
-
-    update() {
-        this.vy += gravity;
-        this.y += this.vy;
-
-        let currentGround = groundY - this.height;
-        if (this.y > currentGround) {
-            this.y = currentGround;
-            this.vy = 0;
-            this.isJumping = false;
-        }
-
-        if (this.isRolling) {
-            this.rollTimer--;
-            if (this.rollTimer <= 0) {
-                this.isRolling = false;
-                this.height = 60;
-                this.y = groundY - this.height;
+            if (event && event.target && event.target.id === 'revive-btn') {
+                return;
+            }
+            
+            if (isGameOver) {
+                resetGame();
+            } else {
+                jump();
             }
         }
-    },
 
-    draw() {
-        ctx.save();
-        ctx.translate(this.x, this.y);
+        window.addEventListener("touchstart", function(event) {
+            if (event.target && event.target.id === 'revive-btn') return;
+            event.preventDefault();
+            handleAction(event);
+        }, { passive: false });
 
-        if (this.isRolling) {
-            ctx.fillStyle = "#ff5722";
-            ctx.beginPath();
-            ctx.arc(this.width / 2, this.height / 2, 18, 0, Math.PI * 2);
-            ctx.fill();
-        } else {
-            ctx.fillStyle = "#ff5722";
-            ctx.fillRect(0, 0, this.width, this.height);
+        document.addEventListener("keydown", function(event) {
+            if (event.code === "Space") {
+                event.preventDefault();
+                handleAction(event);
+            }
+        });
 
-            ctx.fillStyle = "#000";
-            ctx.fillRect(5, -10, 30, 10);
-            ctx.fillRect(20, -7, 25, 4);
+        window.addEventListener("mousedown", function(event) {
+            if (event.pointerType !== 'touch') {
+                handleAction(event);
+            }
+        });
+
+        function jump() {
+            if (isJumping || isGameOver) return;
+            isJumping = true;
+            skater.classList.add("jump");
+            setTimeout(() => {
+                skater.classList.remove("jump");
+                isJumping = false;
+            }, 500);
+        }
+
+        function gameLoop() {
+            if (isGameOver || isWatchingPub) return;
+            let containerWidth = container.offsetWidth;
+            let obstacleLeft = parseInt(window.getComputedStyle(obstacle).getPropertyValue("left"));
             
-            ctx.fillStyle = "#fff";
-            ctx.fillRect(25, 5, 8, 8);
-            ctx.fillStyle = "#000";
-            ctx.fillRect(29, 5, 4, 4);
-
-            ctx.fillStyle = "#795548";
-            ctx.fillRect(-5, this.height, this.width + 10, 6);
-            ctx.fillStyle = "#000";
-            ctx.beginPath();
-            ctx.arc(2, this.height + 9, 4, 0, Math.PI * 2);
-            ctx.arc(this.width - 2, this.height + 9, 4, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.restore();
-    }
-};
-
-let obstacles = [];
-let spawnTimer = 0;
-
-function spawnObstacle() {
-    const type = Math.random() > 0.5 ? "high" : "low";
-    if (type === "high") {
-        obstacles.push({
-            x: canvas.width,
-            y: groundY - 75,
-            width: 30,
-            height: 30,
-            color: "#e91e63"
-        });
-    } else {
-        obstacles.push({
-            x: canvas.width,
-            y: groundY - 35,
-            width: 30,
-            height: 35,
-            color: "#9c27b0"
-        });
-    }
-}
-
-// CORRECTION IMPORTANTE ICI : utilisation de e.touches[0].clientY
-window.addEventListener("touchstart", (e) => {
-    if (e.touches && e.touches.length > 0) {
-        const touchY = e.touches[0].clientY;
-        if (touchY < window.innerHeight / 2) {
-            player.jump();
-        } else {
-            player.roll();
-        }
-    }
-});
-
-window.addEventListener("keydown", (e) => {
-    if (e.code === "Space" || e.code === "ArrowUp") {
-        e.preventDefault();
-        player.jump();
-    }
-    if (e.code === "ArrowDown" || e.code === "KeyS") {
-        e.preventDefault();
-        player.roll();
-    }
-});
-
-const adBtn = document.getElementById("adBtn");
-const restartBtn = document.getElementById("restartBtn");
-const adScreen = document.getElementById("ad-screen");
-const adTimerText = document.getElementById("ad-timer");
-
-function startNewGame() {
-    if (animationId) cancelAnimationFrame(animationId);
-    
-    obstacles = []; 
-    spawnTimer = 0;
-    gameOver = false;
-    isAdState = false;
-    
-    player.y = groundY - player.height;
-    player.vy = 0;
-    player.isJumping = false;
-    player.isRolling = false;
-    
-    adBtn.style.display = "none";
-    restartBtn.style.display = "none";
-    
-    loop();
-}
-
-adBtn.addEventListener("click", () => {
-    adBtn.style.display = "none";
-    restartBtn.style.display = "none";
-    adScreen.style.display = "flex";
-    isAdState = true;
-    if (animationId) cancelAnimationFrame(animationId);
-    
-    let timeLeft = 3; 
-    adTimerText.innerText = `${timeLeft}s`;
-
-    let interval = setInterval(() => {
-        timeLeft--;
-        adTimerText.innerText = `${timeLeft}s`;
-        
-        if (timeLeft <= 0) {
-            clearInterval(interval);
-            adScreen.style.display = "none";
-            isAdState = false;
-            gameOver = false;
-            obstacles = [];
-            player.y = groundY - player.height;
-            player.vy = 0;
-            loop();
-        }
-    }, 1000);
-});
-
-restartBtn.addEventListener("click", () => {
-    score = 0; 
-    startNewGame();
-});
-
-function loop() {
-    if (gameOver || isAdState) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "#333";
-    ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
-
-    player.update();
-    player.draw();
-
-    spawnTimer++;
-    if (spawnTimer > 80) {
-        spawnObstacle();
-        spawnTimer = 0;
-    }
-
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-        let obs = obstacles[i];
-        obs.x -= 6;
-
-        ctx.fillStyle = obs.color;
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-
-        if (
-            player.x < obs.x + obs.width &&
-            player.x + player.width > obs.x &&
-            player.y < obs.y + obs.height &&
-            player.y + player.height > obs.y
-        ) {
-            gameOver = true;
-            adBtn.style.display = "block";
-            restartBtn.style.display = "block";
+            if (obstacleLeft < -25) {
+                obstacleLeft = containerWidth;
+                score++;
+                scoreDisplay.innerText = score;
+                
+                if (score % 5 === 0) {
+                    obstacleVitesse += 1;
+                }
+            }
+            
+            obstacle.style.left = (obstacleLeft - obstacleVitesse) + "px";
+            let skaterBottom = parseInt(window.getComputedStyle(skater).getPropertyValue("bottom"));
+            
+            if (obstacleLeft > 50 && obstacleLeft < 90 && skaterBottom < 40) {
+                endGame();
+                return;
+            }
+            animationFrameId = requestAnimationFrame(gameLoop);
         }
 
-        if (obs.x + obs.width < 0) {
-            obstacles.splice(i, 1);
-            score += 10;
+        function endGame() {
+            isGameOver = true;
+            cancelAnimationFrame(animationFrameId);
+            
+            gameOverText.innerHTML = `
+                FIN DE LA PARTIE<br>
+                <span style="font-size: 16px; color: #333; display:block; margin-bottom:10px;">Votre Score : ${score}</span>
+                <button id="revive-btn" onclick="regarderPubPourContinuer(event)" style="background-color: #2ed573; color: white; font-size: 16px; font-weight: bold; padding: 10px 20px; border: none; border-radius: 25px; cursor: pointer; box-shadow: 0px 4px 6px rgba(0,0,0,0.1);">
+                    🎬 Continuer le score (Regarder la pub)
+                </button>
+                <br><span style="font-size: 14px; color: #666; display:block; margin-top:10px;">Ou cliquez ailleurs pour recommencer</span>
+            `;
+            gameOverText.style.display = "block";
         }
-    }
 
-    ctx.fillStyle = "#000";
-    ctx.font = "bold 24px Arial";
-    ctx.fillText(`Score: ${score}`, 20, 40);
+        function regarderPubPourContinuer(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            gameOverText.style.display = "none";
+            isWatchingPub = true;
+            pubContainer.style.display = "flex";
+            
+            // Configuration du compte à rebours visuel (ex: 3 secondes)
+            let timeLeft = 3;
+            timerCount.innerText = timeLeft;
+            
+            pubVideo.currentTime = 0;
+            pubVideo.play().catch(error => {
+                console.log("Lecture auto bloquée, passage direct au timer.", error);
+            });
 
-    animationId = requestAnimationFrame(loop);
-}
+            let pubInterval = setInterval(() => {
+                timeLeft--;
+                timerCount.innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(pubInterval);
+                    reprendreLaPartie();
+                }
+            }, 1000);
+        }
 
-loop();
-</script>
+        function reprendreLaPartie() {
+            pubVideo.pause();
+            pubContainer.style.display = "none";
+            isWatchingPub = false;
+            isGameOver = false;
+            
+            // On replace l'obstacle au début pour laisser le temps au joueur de réagir
+            obstacle.style.left = container.offsetWidth + "px";
+            
+            // Relance de la boucle
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function resetGame() {
+            score = 0;
+            obstacleVitesse = 6;
+            scoreDisplay.innerText = score;
+            isGameOver = false;
+            isWatchingPub = false;
+            gameOverText.style.display = "none";
+            obstacle.style.left = container.offsetWidth + "px";
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // Lancement initial du jeu
+        animationFrameId = requestAnimationFrame(gameLoop);
+    </script>
 </body>
 </html>
