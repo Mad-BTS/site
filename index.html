@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jeu de Skater - Backflip</title>
+    <title>Jeu de Skater - Code Final</title>
     <style>
         * {
             box-sizing: border-box;
@@ -39,12 +39,12 @@
             bottom: 0;
             left: 50px;
             border-radius: 8px;
-            transform-origin: center center; /* Centre de rotation pour le backflip */
+            transform-origin: center center;
         }
         
-        /* NOUVELLE ANIMATION : Saut arrière + roulade dans le ciel */
+        /* Animation fluide du saut avec roulade arrière */
         .jump {
-            animation: backflipAnimation 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            animation: backflipAnimation 0.6s linear;
         }
         
         @keyframes backflipAnimation {
@@ -52,17 +52,9 @@
                 bottom: 0; 
                 transform: rotate(0deg); 
             }
-            30% {
-                /* Début de la montée et inclinaison arrière */
-                transform: rotate(-90deg);
-            }
             50% { 
-                bottom: 140px; /* Plus haut pour la roulade de ciel */
+                bottom: 130px; 
                 transform: rotate(-180deg); 
-            }
-            75% {
-                /* Descente et fin de tour */
-                transform: rotate(-270deg);
             }
             100% { 
                 bottom: 0; 
@@ -95,7 +87,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             text-align: center;
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
             color: #ff4757;
             background: rgba(255, 255, 255, 0.95);
@@ -118,11 +110,6 @@
             justify-content: center;
             align-items: center;
             flex-direction: column;
-        }
-        #pub-video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
         }
         #pub-timer {
             position: absolute;
@@ -189,7 +176,7 @@
         }, { passive: false });
 
         document.addEventListener("keydown", function(event) {
-            if (event.code === "Space") {
+            if (event.code === "Space" || event.code === "ArrowUp") {
                 event.preventDefault();
                 handleAction(event);
             }
@@ -206,7 +193,6 @@
             isJumping = true;
             skater.classList.add("jump");
             
-            // Temps ajusté à 600ms (0.6s) pour que la rotation soit fluide
             setTimeout(() => {
                 skater.classList.remove("jump");
                 isJumping = false;
@@ -242,13 +228,14 @@
             isGameOver = true;
             cancelAnimationFrame(animationFrameId);
             
+            // L'attribut style="" a été corrigé ici
             gameOverText.innerHTML = `
                 FIN DE LA PARTIE<br>
                 <span style="font-size: 16px; color: #333; display:block; margin-bottom:10px;">Votre Score : ${score}</span>
                 <button id="revive-btn" style="background-color: #2ed573; color: white; font-size: 16px; font-weight: bold; padding: 10px 20px; border: none; border-radius: 25px; cursor: pointer; box-shadow: 0px 4px 6px rgba(0,0,0,0.1);">
                     🎬 Continuer (Pub)
                 </button>
-                <br><span style="font-size: 14px; color: #666; display:block; margin-top:10px;">Ou cliquez ailleurs pour recommencer à 0</span>
+                <br><span style="font-size: 14px; color: #666; display:block; margin-top:10px;">Ou cliquez n'importe où pour recommencer</span>
             `;
             gameOverText.style.display = "block";
 
