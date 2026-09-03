@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jeu de Skater</title>
+    <title>Jeu de Skater - Backflip</title>
     <style>
         * {
             box-sizing: border-box;
@@ -39,16 +39,37 @@
             bottom: 0;
             left: 50px;
             border-radius: 8px;
-            transition: bottom 0.1s linear;
+            transform-origin: center center; /* Centre de rotation pour le backflip */
         }
+        
+        /* NOUVELLE ANIMATION : Saut arrière + roulade dans le ciel */
         .jump {
-            animation: jumpAnimation 0.5s ease-out;
+            animation: backflipAnimation 0.6s cubic-bezier(0.25, 1, 0.5, 1);
         }
-        @keyframes jumpAnimation {
-            0% { bottom: 0; }
-            50% { bottom: 120px; }
-            100% { bottom: 0; }
+        
+        @keyframes backflipAnimation {
+            0% { 
+                bottom: 0; 
+                transform: rotate(0deg); 
+            }
+            30% {
+                /* Début de la montée et inclinaison arrière */
+                transform: rotate(-90deg);
+            }
+            50% { 
+                bottom: 140px; /* Plus haut pour la roulade de ciel */
+                transform: rotate(-180deg); 
+            }
+            75% {
+                /* Descente et fin de tour */
+                transform: rotate(-270deg);
+            }
+            100% { 
+                bottom: 0; 
+                transform: rotate(-360deg); 
+            }
         }
+
         #obstacle {
             width: 25px;
             height: 40px;
@@ -124,11 +145,9 @@
         
         <div id="game-over-text"></div>
 
-        <!-- Zone Publicité (Simulation) -->
         <div id="pub-container">
             <div id="pub-timer">Publicité : <span id="timer-count">3</span>s</div>
-            <!-- Remplacez src par le lien d'une vraie vidéo si besoin -->
-            <video id="pub-video" src="https://w3schools.com" muted playsinline></video>
+            <video id="pub-video" src="" muted playsinline></video>
         </div>
     </div>
 
@@ -140,7 +159,6 @@
         const gameOverText = document.getElementById("game-over-text");
         
         const pubContainer = document.getElementById("pub-container");
-        const pubVideo = document.getElementById("pub-video");
         const timerCount = document.getElementById("timer-count");
 
         let score = 0;
@@ -150,7 +168,6 @@
         let obstacleVitesse = 6;
         let animationFrameId;
 
-        // Gestion des interactions tactiles et clics globaux
         function handleAction(event) {
             if (isWatchingPub) return;
 
@@ -185,13 +202,15 @@
         });
 
         function jump() {
-            if (isJumping || isGameOver) return;
+            if (isJumping || isGameOver || isWatchingPub) return;
             isJumping = true;
             skater.classList.add("jump");
+            
+            // Temps ajusté à 600ms (0.6s) pour que la rotation soit fluide
             setTimeout(() => {
                 skater.classList.remove("jump");
                 isJumping = false;
-            }, 500);
+            }, 600);
         }
 
         function gameLoop() {
@@ -226,12 +245,14 @@
             gameOverText.innerHTML = `
                 FIN DE LA PARTIE<br>
                 <span style="font-size: 16px; color: #333; display:block; margin-bottom:10px;">Votre Score : ${score}</span>
-                <button id="revive-btn" onclick="regarderPubPourContinuer(event)" style="background-color: #2ed573; color: white; font-size: 16px; font-weight: bold; padding: 10px 20px; border: none; border-radius: 25px; cursor: pointer; box-shadow: 0px 4px 6px rgba(0,0,0,0.1);">
-                    🎬 Continuer le score (Regarder la pub)
+                <button id="revive-btn" style="background-color: #2ed573; color: white; font-size: 16px; font-weight: bold; padding: 10px 20px; border: none; border-radius: 25px; cursor: pointer; box-shadow: 0px 4px 6px rgba(0,0,0,0.1);">
+                    🎬 Continuer (Pub)
                 </button>
-                <br><span style="font-size: 14px; color: #666; display:block; margin-top:10px;">Ou cliquez ailleurs pour recommencer</span>
+                <br><span style="font-size: 14px; color: #666; display:block; margin-top:10px;">Ou cliquez ailleurs pour recommencer à 0</span>
             `;
             gameOverText.style.display = "block";
+
+            document.getElementById("revive-btn").addEventListener("click", regarderPubPourContinuer);
         }
 
         function regarderPubPourContinuer(event) {
@@ -244,36 +265,25 @@
             isWatchingPub = true;
             pubContainer.style.display = "flex";
             
-            // Configuration du compte à rebours visuel (ex: 3 secondes)
             let timeLeft = 3;
             timerCount.innerText = timeLeft;
-            
-            pubVideo.currentTime = 0;
-            pubVideo.play().catch(error => {
-                console.log("Lecture auto bloquée, passage direct au timer.", error);
-            });
 
             let pubInterval = setInterval(() => {
                 timeLeft--;
                 timerCount.innerText = timeLeft;
+
                 if (timeLeft <= 0) {
                     clearInterval(pubInterval);
-                    reprendreLaPartie();
+                    pubContainer.style.display = "none";
+                    isWatchingPub = false;
+                    isGameOver = false;
+
+                    let containerWidth = container.offsetWidth;
+                    obstacle.style.left = containerWidth + "px";
+
+                    animationFrameId = requestAnimationFrame(gameLoop);
                 }
             }, 1000);
-        }
-
-        function reprendreLaPartie() {
-            pubVideo.pause();
-            pubContainer.style.display = "none";
-            isWatchingPub = false;
-            isGameOver = false;
-            
-            // On replace l'obstacle au début pour laisser le temps au joueur de réagir
-            obstacle.style.left = container.offsetWidth + "px";
-            
-            // Relance de la boucle
-            animationFrameId = requestAnimationFrame(gameLoop);
         }
 
         function resetGame() {
@@ -283,12 +293,14 @@
             isGameOver = false;
             isWatchingPub = false;
             gameOverText.style.display = "none";
-            obstacle.style.left = container.offsetWidth + "px";
-            cancelAnimationFrame(animationFrameId);
+            
+            let containerWidth = container.offsetWidth;
+            obstacle.style.left = containerWidth + "px";
+            
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
             animationFrameId = requestAnimationFrame(gameLoop);
         }
 
-        // Lancement initial du jeu
         animationFrameId = requestAnimationFrame(gameLoop);
     </script>
 </body>
